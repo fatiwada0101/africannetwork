@@ -272,9 +272,9 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
               className={`sa-btn-outline ${dateFilter === f.id ? 'sa-filter-active' : ''}`}
               onClick={() => { setDateFilter(f.id); setPage(1); }}
               style={{ fontSize: 12, padding: '6px 14px', borderRadius: 20,
-                background: dateFilter === f.id ? 'var(--primary-color, #7257FF)' : 'transparent',
+                background: dateFilter === f.id ? 'var(--primary-color, #34A853)' : 'transparent',
                 color: dateFilter === f.id ? '#fff' : 'inherit',
-                borderColor: dateFilter === f.id ? 'var(--primary-color, #7257FF)' : undefined }}>
+                borderColor: dateFilter === f.id ? 'var(--primary-color, #34A853)' : undefined }}>
               {f.label}
             </button>
           ))}

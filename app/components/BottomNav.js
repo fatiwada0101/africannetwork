@@ -39,7 +39,7 @@ export default function BottomNav() {
               className="dock-pill-active"
               onClick={() => router.push(item.path)}
             >
-              <IconComponent size={18} color="#141417" />
+              <IconComponent size={18} color="#FFFFFF" />
               <span>{item.label}</span>
             </button>
           );

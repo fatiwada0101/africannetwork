@@ -39,7 +39,7 @@ export default function DashboardTab({
               <div className="sa-kpi-card">
                 <div className="sa-kpi-top">
                   <span className="sa-kpi-label">Vouchers Sold</span>
-                  <div className="sa-kpi-icon-mini"><TicketIcon size={16} color="#7257FF" /></div>
+                  <div className="sa-kpi-icon-mini"><TicketIcon size={16} color="#34A853" /></div>
                 </div>
                 <div className="sa-kpi-value">{stats.vouchers}</div>
                 <div className="sa-kpi-footer">{stats.totalGenerated || stats.vouchers} total generated</div>
@@ -109,7 +109,7 @@ export default function DashboardTab({
                         <span className="sa-dist-count">{item.count} sold ({item.percentage}%) • {formatPrice(item.revenue)}</span>
                       </div>
                       <div className="sa-dist-track">
-                        <div className="sa-dist-fill" style={{ width: `${item.percentage}%`, background: ['#7257FF','#10B981','#FFB84C','#3B82F6','#EC4899'][idx % 5] }} />
+                        <div className="sa-dist-fill" style={{ width: `${item.percentage}%`, background: ['#34A853','#10B981','#FFB84C','#3B82F6','#EC4899'][idx % 5] }} />
                       </div>
                     </div>
                   ))}

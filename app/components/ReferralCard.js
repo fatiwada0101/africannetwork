@@ -70,7 +70,7 @@ export default function ReferralCard() {
           marginBottom: '12px',
         }}
       >
-        <div style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 800, color: 'var(--primary, #7257FF)', letterSpacing: '1px' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 800, color: 'var(--primary, #34A853)', letterSpacing: '1px' }}>
           {data.referral_code}
         </div>
 
@@ -79,7 +79,7 @@ export default function ReferralCard() {
           style={{
             padding: '8px 14px',
             borderRadius: '8px',
-            background: copied ? '#10B981' : 'var(--primary, #7257FF)',
+            background: copied ? '#10B981' : 'var(--primary, #34A853)',
             color: '#FFFFFF',
             fontSize: '12px',
             fontWeight: 700,

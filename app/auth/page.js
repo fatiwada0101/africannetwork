@@ -165,7 +165,7 @@ export default function AuthPage() {
                 marginTop: '8px',
                 fontSize: '12px',
                 fontWeight: 700,
-                color: '#7257FF',
+                color: '#34A853',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -187,7 +187,7 @@ export default function AuthPage() {
                 marginTop: '8px',
                 fontSize: '12px',
                 fontWeight: 700,
-                color: '#7257FF',
+                color: '#34A853',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -206,7 +206,7 @@ export default function AuthPage() {
           <div className="profile-menu-item" onClick={() => router.push('/wallet')}>
             <div className="profile-menu-left">
               <div className="profile-menu-icon">
-                <WalletIcon size={18} color="#7257FF" />
+                <WalletIcon size={18} color="#34A853" />
               </div>
               <span>Wallet & Transactions</span>
             </div>
@@ -313,7 +313,7 @@ export default function AuthPage() {
       {/* Brand Auth Card */}
       <div className="auth-card">
         <div className="auth-logo-badge">
-          <WifiIcon size={26} color="#7257FF" />
+          <WifiIcon size={26} color="#34A853" />
         </div>
 
         <h2 className="auth-title">
@@ -365,7 +365,7 @@ export default function AuthPage() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#7257FF',
+                  color: '#34A853',
                   fontSize: '13px',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -460,7 +460,7 @@ export default function AuthPage() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#7257FF',
+                  color: '#34A853',
                   fontSize: '13px',
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -477,8 +477,8 @@ export default function AuthPage() {
           marginTop: '20px',
           padding: '14px',
           borderRadius: '12px',
-          background: 'rgba(59, 130, 246, 0.08)',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
+          background: 'rgba(52, 168, 83, 0.08)',
+          border: '1px solid rgba(52, 168, 83, 0.2)',
           textAlign: 'center'
         }}>
           <div style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>
@@ -493,7 +493,7 @@ export default function AuthPage() {
               display: 'inline-block',
               padding: '6px 14px',
               borderRadius: '8px',
-              background: '#3b82f6',
+              background: '#34A853',
               color: '#fff',
               fontSize: '11px',
               fontWeight: 700,
@@ -515,7 +515,7 @@ export default function AuthPage() {
           {isLogin ? "Don't have an account yet? " : 'Already registered? '}
           <span
             style={{
-              color: '#7257FF',
+              color: '#34A853',
               fontWeight: 800,
               cursor: 'pointer',
               textDecoration: 'underline',

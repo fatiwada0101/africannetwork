@@ -55,7 +55,7 @@ export default function DataUsageGauge({
               padding: '3px 8px',
               borderRadius: '999px',
               background: 'rgba(114, 87, 255, 0.1)',
-              color: '#7257FF',
+              color: '#34A853',
             }}
           >
             {percentDataUsed}% used
@@ -103,7 +103,7 @@ export default function DataUsageGauge({
               width: `${Math.min(100, Math.max(3, percentDataUsed))}%`,
               background: isDataLow
                 ? 'linear-gradient(90deg, #F59E0B 0%, #EF4444 100%)'
-                : 'linear-gradient(90deg, #7257FF 0%, #10B981 100%)',
+                : 'linear-gradient(90deg, #34A853 0%, #10B981 100%)',
               borderRadius: '999px',
               transition: 'width 0.6s ease',
             }}
@@ -129,7 +129,7 @@ export default function DataUsageGauge({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary, #6B7280)' }}>
-          <ArrowUpRightIcon size={13} color="#7257FF" />
+          <ArrowUpRightIcon size={13} color="#34A853" />
           <span>↑ Upload:</span>
           <strong style={{ color: 'var(--text-primary, #121217)' }}>{uploadFormatted}</strong>
         </div>

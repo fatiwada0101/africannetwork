@@ -219,7 +219,7 @@ export default function PackagesPage() {
                 <div className="pass-card-top">
                   <div className="pass-badge-group">
                     <div className="pass-wifi-icon-badge">
-                      <WifiIcon size={20} color="#7257FF" />
+                      <WifiIcon size={20} color="#34A853" />
                     </div>
                     <span className={`pass-tag-pill ${plan.popular ? 'popular' : ''}`}>
                       {plan.duration}

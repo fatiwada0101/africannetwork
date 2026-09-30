@@ -81,7 +81,7 @@ export default function SideDrawer({ isOpen, onClose }) {
         {/* Top bar with brand and close button */}
         <div className="drawer-top-bar">
           <div className="drawer-brand">
-            <WifiIcon size={20} color={theme?.primary || '#7257FF'} />
+            <WifiIcon size={20} color={theme?.primary || '#34A853'} />
             <span>{appName} Hotspot</span>
           </div>
 
@@ -169,7 +169,7 @@ export default function SideDrawer({ isOpen, onClose }) {
               </div>
               <span>Customer Helpdesk</span>
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--primary, #7257FF)', fontWeight: 700 }}>24/7 Support</span>
+            <span style={{ fontSize: '11px', color: 'var(--primary, #34A853)', fontWeight: 700 }}>24/7 Support</span>
           </button>
         </nav>
 

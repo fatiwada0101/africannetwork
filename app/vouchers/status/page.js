@@ -239,7 +239,7 @@ function VoucherStatusContent() {
           border: '1.5px solid #F0F1F5',
           alignItems: 'center'
         }}>
-          <WifiIcon size={18} color="#7257FF" />
+          <WifiIcon size={18} color="#34A853" />
           <input
             type="text"
             placeholder="Enter or paste Voucher PIN (e.g. 38472)"
@@ -399,7 +399,7 @@ function VoucherStatusContent() {
           <div style={{
             height: '100%',
             width: `${percentLeft}%`,
-            background: isExpired ? '#EF4444' : isExpiringSoon ? 'linear-gradient(90deg, #F59E0B, #EF4444)' : 'linear-gradient(90deg, #7257FF, #10B981)',
+            background: isExpired ? '#EF4444' : isExpiringSoon ? 'linear-gradient(90deg, #F59E0B, #EF4444)' : 'linear-gradient(90deg, #34A853, #10B981)',
             borderRadius: 999,
             transition: 'width 1s linear'
           }} />
@@ -561,7 +561,7 @@ function VoucherStatusContent() {
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
               Hotspot Portal
             </div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#7257FF', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#34A853', fontFamily: 'monospace' }}>
               {networkInfo.hotspot_url}
             </div>
           </div>
@@ -603,7 +603,7 @@ function VoucherStatusContent() {
             width: '100%',
             padding: '15px',
             borderRadius: 999,
-            background: isExpiringSoon || isExpired ? '#7257FF' : '#141417',
+            background: isExpiringSoon || isExpired ? '#34A853' : '#141417',
             color: '#FFFFFF',
             fontSize: '14px',
             fontWeight: 800,

@@ -277,7 +277,7 @@ function CaptiveLoginPage() {
           ) : (
             <div style={{
               width: 60, height: 60, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+              background: 'linear-gradient(135deg, #34A853, #2D9249)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 14px', fontSize: 26,
               boxShadow: '0 8px 24px rgba(34,197,94,0.35)',
@@ -308,7 +308,7 @@ function CaptiveLoginPage() {
             }}>
               {String.fromCodePoint(0x2705)}
             </div>
-            <h2 style={{ color: '#22c55e', fontSize: '19px', fontWeight: 800, margin: '0 0 6px' }}>
+            <h2 style={{ color: '#34A853', fontSize: '19px', fontWeight: 800, margin: '0 0 6px' }}>
               Connected & Authenticated!
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: '0 0 16px' }}>
@@ -317,10 +317,10 @@ function CaptiveLoginPage() {
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '6px 14px', borderRadius: 999,
-              background: 'rgba(34,197,94,0.1)', color: '#22c55e',
+              background: 'rgba(34,197,94,0.1)', color: '#34A853',
               fontSize: '12px', fontWeight: 600,
             }}>
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#34A853' }} />
               Active Hotspot Session
             </div>
           </div>
@@ -329,7 +329,7 @@ function CaptiveLoginPage() {
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
               border: '3px solid rgba(255,255,255,0.1)',
-              borderTop: '3px solid #22c55e',
+              borderTop: '3px solid #34A853',
               margin: '0 auto 16px',
               animation: 'spin 1s linear infinite',
             }} />
@@ -337,7 +337,7 @@ function CaptiveLoginPage() {
               Auto-Authenticating...
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: '0 0 12px' }}>
-              Logging in with voucher code <strong style={{ color: '#22c55e', fontFamily: 'monospace' }}>{code}</strong>
+              Logging in with voucher code <strong style={{ color: '#34A853', fontFamily: 'monospace' }}>{code}</strong>
             </p>
             <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
           </div>
@@ -365,7 +365,7 @@ function CaptiveLoginPage() {
                   transition: 'border-color 0.2s',
                   boxSizing: 'border-box',
                 }}
-                onFocus={e => e.target.style.borderColor = '#22c55e'}
+                onFocus={e => e.target.style.borderColor = '#34A853'}
                 onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
               />
             </div>
@@ -386,7 +386,7 @@ function CaptiveLoginPage() {
               disabled={loading || !code.trim()}
               style={{
                 width: '100%', padding: '15px', fontSize: '15px', fontWeight: 800,
-                background: loading ? '#555' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                background: loading ? '#555' : 'linear-gradient(135deg, #34A853, #2D9249)',
                 color: '#fff', border: 'none', borderRadius: 14, cursor: loading ? 'wait' : 'pointer',
                 letterSpacing: '0.3px',
                 boxShadow: loading ? 'none' : '0 4px 20px rgba(34,197,94,0.35)',
@@ -410,10 +410,10 @@ function CaptiveLoginPage() {
             href={buyPackageUrl}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              color: '#7257FF', fontSize: '13.5px', fontWeight: 800,
+              color: '#34A853', fontSize: '13.5px', fontWeight: 800,
               textDecoration: 'none', padding: '8px 16px',
-              background: 'rgba(114,87,255,0.12)', borderRadius: 10,
-              border: '1px solid rgba(114,87,255,0.25)',
+              background: 'rgba(52, 168, 83, 0.12)', borderRadius: 10,
+              border: '1px solid rgba(52, 168, 83, 0.25)',
               transition: 'background 0.2s',
             }}
           >

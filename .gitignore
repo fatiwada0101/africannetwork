@@ -46,3 +46,5 @@ next-env.d.ts
 # agent files and credentials
 .agents/
 docs/production-roadmap/credentials.md
+
+.vercel

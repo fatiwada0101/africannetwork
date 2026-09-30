@@ -585,7 +585,7 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
                   margin: '14px 0',
                   padding: '12px 14px',
                   background: autoRenew ? 'rgba(114, 87, 255, 0.08)' : 'var(--bg, #F9FAFB)',
-                  border: `1.5px solid ${autoRenew ? 'var(--primary, #7257FF)' : 'var(--border-subtle, #F3F4F6)'}`,
+                  border: `1.5px solid ${autoRenew ? 'var(--primary, #34A853)' : 'var(--border-subtle, #F3F4F6)'}`,
                   borderRadius: '14px',
                   display: 'flex',
                   alignItems: 'center',
@@ -610,7 +610,7 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
                   type="checkbox"
                   checked={autoRenew}
                   onChange={(e) => setAutoRenew(e.target.checked)}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--primary, #7257FF)', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--primary, #34A853)', cursor: 'pointer' }}
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>

@@ -125,8 +125,8 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
             onClick={onSyncRouter}
             disabled={isSyncing}
             style={{
-              borderColor: '#7257FF',
-              color: '#7257FF',
+              borderColor: '#34A853',
+              color: '#34A853',
               fontWeight: 700,
               fontSize: '13px',
               padding: '8px 16px',
@@ -152,7 +152,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
           type="button"
           onClick={() => setActiveGuideTab('cloud')}
           style={{
-            background: activeGuideTab === 'cloud' ? '#7257FF' : '#F4F5F8',
+            background: activeGuideTab === 'cloud' ? '#34A853' : '#F4F5F8',
             color: activeGuideTab === 'cloud' ? '#FFF' : '#121217',
             border: activeGuideTab === 'cloud' ? 'none' : '1px solid #E4E4E7',
             borderRadius: 999,
@@ -176,7 +176,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
           type="button"
           onClick={() => setActiveGuideTab('local')}
           style={{
-            background: activeGuideTab === 'local' ? '#7257FF' : '#F4F5F8',
+            background: activeGuideTab === 'local' ? '#34A853' : '#F4F5F8',
             color: activeGuideTab === 'local' ? '#FFF' : '#121217',
             border: activeGuideTab === 'local' ? 'none' : '1px solid #E4E4E7',
             borderRadius: 999,
@@ -194,7 +194,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
           type="button"
           onClick={() => setActiveGuideTab('script')}
           style={{
-            background: activeGuideTab === 'script' ? '#7257FF' : '#F4F5F8',
+            background: activeGuideTab === 'script' ? '#34A853' : '#F4F5F8',
             color: activeGuideTab === 'script' ? '#FFF' : '#121217',
             border: activeGuideTab === 'script' ? 'none' : '1px solid #E4E4E7',
             borderRadius: 999,
@@ -212,7 +212,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
           type="button"
           onClick={() => setActiveGuideTab('hotspot')}
           style={{
-            background: activeGuideTab === 'hotspot' ? '#7257FF' : '#F4F5F8',
+            background: activeGuideTab === 'hotspot' ? '#34A853' : '#F4F5F8',
             color: activeGuideTab === 'hotspot' ? '#FFF' : '#121217',
             border: activeGuideTab === 'hotspot' ? 'none' : '1px solid #E4E4E7',
             borderRadius: 999,
@@ -267,7 +267,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span
                   style={{
-                    background: '#7257FF',
+                    background: '#34A853',
                     color: '#FFF',
                     width: 28,
                     height: 28,
@@ -354,7 +354,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span
                   style={{
-                    background: '#7257FF',
+                    background: '#34A853',
                     color: '#FFF',
                     width: 28,
                     height: 28,
@@ -429,7 +429,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span
                   style={{
-                    background: '#7257FF',
+                    background: '#34A853',
                     color: '#FFF',
                     width: 28,
                     height: 28,
@@ -486,7 +486,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span
                   style={{
-                    background: '#7257FF',
+                    background: '#34A853',
                     color: '#FFF',
                     width: 28,
                     height: 28,
@@ -629,7 +629,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
                   type="button"
                   onClick={() => setScriptMode('cloud')}
                   style={{
-                    background: scriptMode === 'cloud' ? '#7257FF' : 'transparent',
+                    background: scriptMode === 'cloud' ? '#34A853' : 'transparent',
                     color: scriptMode === 'cloud' ? '#FFF' : '#71717A',
                     border: 'none',
                     borderRadius: 999,
@@ -645,7 +645,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
                   type="button"
                   onClick={() => setScriptMode('local')}
                   style={{
-                    background: scriptMode === 'local' ? '#7257FF' : 'transparent',
+                    background: scriptMode === 'local' ? '#34A853' : 'transparent',
                     color: scriptMode === 'local' ? '#FFF' : '#71717A',
                     border: 'none',
                     borderRadius: 999,
@@ -718,7 +718,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
               padding: 22,
             }}
           >
-            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#7257FF' }}>
+            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#34A853' }}>
               How the Zero-Configuration Hotspot Flow Works
             </h4>
             <p style={{ fontSize: '13.5px', color: '#4A4A52', marginTop: 6, lineHeight: 1.6 }}>
@@ -760,7 +760,7 @@ export default function MikroTikSetupGuide({ mikrotikForm = {}, onSyncRouter, is
                 </strong>
                 <span style={{ fontSize: '12.5px', color: '#71717A' }}>
                   Customer taps <strong>&ldquo;Connect to Wi-Fi&rdquo;</strong> on their ticket. The app launches:
-                  <code style={{ display: 'block', marginTop: 4, color: '#7257FF', fontSize: '11px', wordBreak: 'break-all' }}>
+                  <code style={{ display: 'block', marginTop: 4, color: '#34A853', fontSize: '11px', wordBreak: 'break-all' }}>
                     http://{hotspotUrl}/login?username=CODE&password=CODE
                   </code>
                 </span>

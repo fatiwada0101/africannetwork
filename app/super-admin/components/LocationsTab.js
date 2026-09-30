@@ -327,7 +327,7 @@ export default function LocationsTab({ adminHeaders, showToast }) {
                     href={mapsUrl}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ color: '#7257FF', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', fontWeight: 700, fontSize: '12px' }}
+                    style={{ color: '#34A853', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', fontWeight: 700, fontSize: '12px' }}
                   >
                     Map <ExternalLinkIcon size={12} />
                   </a>
@@ -359,7 +359,7 @@ export default function LocationsTab({ adminHeaders, showToast }) {
                           }}
                         >
                           <span style={{ fontWeight: 600, color: 'var(--text-primary, #121217)' }}>
-                            ⚡ {r.name} <code style={{ fontSize: '11px', color: '#7257FF' }}>({r.identity})</code>
+                            ⚡ {r.name} <code style={{ fontSize: '11px', color: '#34A853' }}>({r.identity})</code>
                           </span>
                           <span
                             style={{
@@ -569,7 +569,7 @@ export default function LocationsTab({ adminHeaders, showToast }) {
                   disabled={gpsDetecting}
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
-                  <ZapIcon size={14} color="#7257FF" />
+                  <ZapIcon size={14} color="#34A853" />
                   <span>{gpsDetecting ? 'Detecting GPS...' : '📍 Use My Device Current GPS'}</span>
                 </button>
               </div>

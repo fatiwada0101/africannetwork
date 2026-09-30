@@ -48,8 +48,8 @@ export default function VoucherQrModal({ isOpen, onClose, voucherCode, planName,
           <title>African Network Voucher - ${cleanCode}</title>
           <style>
             body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; }
-            .card { border: 2px dashed #7257FF; border-radius: 16px; padding: 24px; max-width: 320px; margin: 0 auto; }
-            h2 { color: #7257FF; margin: 0 0 8px; }
+            .card { border: 2px dashed #34A853; border-radius: 16px; padding: 24px; max-width: 320px; margin: 0 auto; }
+            h2 { color: #34A853; margin: 0 0 8px; }
             .code { font-family: monospace; font-size: 20px; font-weight: bold; background: #F3F4F6; padding: 8px 16px; border-radius: 8px; display: inline-block; margin: 12px 0; }
             img { width: 200px; height: 200px; }
             p { color: #666; font-size: 13px; margin: 6px 0; }
@@ -125,7 +125,7 @@ export default function VoucherQrModal({ isOpen, onClose, voucherCode, planName,
             fontSize: '17px',
             fontWeight: 800,
             letterSpacing: '1px',
-            color: 'var(--primary, #7257FF)',
+            color: 'var(--primary, #34A853)',
             marginBottom: '16px',
             border: '1px solid var(--border-subtle, #F3F4F6)',
           }}
@@ -140,7 +140,7 @@ export default function VoucherQrModal({ isOpen, onClose, voucherCode, planName,
             style={{
               padding: '11px',
               borderRadius: '12px',
-              background: 'var(--primary, #7257FF)',
+              background: 'var(--primary, #34A853)',
               color: '#FFFFFF',
               fontWeight: 700,
               fontSize: '13px',

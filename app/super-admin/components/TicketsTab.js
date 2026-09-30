@@ -151,7 +151,7 @@ export default function TicketsTab({ authHeaders }) {
                     {t.profiles?.phone ? ` • ${t.profiles.phone}` : ''} • Created: {new Date(t.created_at).toLocaleString()}
                   </div>
                   {t.tx_ref && (
-                    <div style={{ fontSize: '12px', color: 'var(--primary, #7257FF)', marginTop: '2px', fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--primary, #34A853)', marginTop: '2px', fontFamily: 'monospace' }}>
                       Ref: {t.tx_ref}
                     </div>
                   )}

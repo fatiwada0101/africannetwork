@@ -86,7 +86,7 @@ export default function RoamingBanner({ onVoucherResumed, searchParams }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
         <div
           style={{
-            background: '#7257FF',
+            background: '#34A853',
             color: '#FFFFFF',
             borderRadius: '12px',
             width: '40px',
@@ -108,7 +108,7 @@ export default function RoamingBanner({ onVoucherResumed, searchParams }) {
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                color: '#7257FF',
+                color: '#34A853',
                 display: 'inline-block',
                 marginBottom: '4px',
               }}
@@ -160,7 +160,7 @@ export default function RoamingBanner({ onVoucherResumed, searchParams }) {
               onClick={handleResume}
               disabled={resuming}
               style={{
-                background: 'linear-gradient(135deg, #7257FF 0%, #5B3FE0 100%)',
+                background: 'linear-gradient(135deg, #34A853 0%, #2D9249 100%)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: '10px',

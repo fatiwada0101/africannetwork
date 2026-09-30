@@ -410,7 +410,7 @@ export default function MikroTikConfigTab({
                     style={{
                       flex: 1, minWidth: 180, padding: 12, borderRadius: 10, cursor: 'pointer',
                       background: hotspotSettings.expiry_mode === 'elapsed' ? 'rgba(114, 87, 255, 0.12)' : 'rgba(0,0,0,0.03)',
-                      border: hotspotSettings.expiry_mode === 'elapsed' ? '2px solid #7257FF' : '1.5px solid rgba(0,0,0,0.12)',
+                      border: hotspotSettings.expiry_mode === 'elapsed' ? '2px solid #34A853' : '1.5px solid rgba(0,0,0,0.12)',
                     }}
                   >
                     <strong style={{ fontSize: '12px' }}>Elapsed Time</strong>
@@ -555,7 +555,7 @@ export default function MikroTikConfigTab({
                     gap: 8,
                     fontSize: 13,
                     padding: '10px 20px',
-                    background: 'linear-gradient(135deg, #7257FF 0%, #5438DC 100%)',
+                    background: 'linear-gradient(135deg, #34A853 0%, #5438DC 100%)',
                   }}
                   onClick={handlePushLoginPageWithProgress}
                   disabled={portalPushing}

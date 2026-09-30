@@ -398,7 +398,7 @@ export default function VoucherFactoryTab({
                       <h3 className="sa-card-title">Bulk Voucher Factory</h3>
                       <p className="sa-card-sub">Generate 1-100 high-performance vouchers with custom prefix, data quotas, and instant MikroTik router provisioning</p>
                     </div>
-                    <span className="sa-badge sa-badge-purple"><TicketIcon size={14} color="#7257FF" /> Factory v2</span>
+                    <span className="sa-badge sa-badge-purple"><TicketIcon size={14} color="#34A853" /> Factory v2</span>
                   </div>
 
                   {/* Plan Preset Quick Loader */}
@@ -737,7 +737,7 @@ export default function VoucherFactoryTab({
                           {paginatedVouchers.map((v, i) => (
                             <div key={v.code || v.voucher_code || i} className="sa-voucher-card-mini" onClick={() => copyCode(v.code || v.voucher_code)}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                <span style={{ fontSize: 10, color: '#A78BFA', fontWeight: 700 }}>
+                                <span style={{ fontSize: 10, color: '#81C995', fontWeight: 700 }}>
                                   #{String(v.serial_number || i + 1).padStart(3, '0')}
                                 </span>
                                 {v.data_limit && v.data_limit !== 'unlimited' && (
@@ -982,7 +982,7 @@ export default function VoucherFactoryTab({
                         {batchHistory.map(b => (
                           <tr key={b.batch_id}>
                             <td>
-                              <code style={{ color: '#A78BFA', fontWeight: 600 }}>{b.batch_id}</code>
+                              <code style={{ color: '#81C995', fontWeight: 600 }}>{b.batch_id}</code>
                             </td>
                             <td>
                               <strong>{b.plan_name || 'Standard Pass'}</strong>

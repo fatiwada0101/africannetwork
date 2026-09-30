@@ -119,7 +119,7 @@ export default function WalletTransferModal({ isOpen, onClose, walletBalance, on
                 width: '100%',
                 padding: '12px',
                 borderRadius: '12px',
-                background: 'var(--primary, #7257FF)',
+                background: 'var(--primary, #34A853)',
                 color: '#FFFFFF',
                 fontWeight: 700,
                 fontSize: '13px',
@@ -146,7 +146,7 @@ export default function WalletTransferModal({ isOpen, onClose, walletBalance, on
               <span style={{ fontSize: '12px', color: 'var(--text-secondary, #71717a)', fontWeight: 600 }}>
                 Available Balance
               </span>
-              <strong style={{ fontSize: '14px', color: 'var(--primary, #7257FF)' }}>
+              <strong style={{ fontSize: '14px', color: 'var(--primary, #34A853)' }}>
                 ₦{Number(walletBalance || 0).toLocaleString()}
               </strong>
             </div>

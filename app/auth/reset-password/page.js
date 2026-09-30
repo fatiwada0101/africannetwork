@@ -140,7 +140,7 @@ function ResetPasswordForm() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 14px',
           }}>
-            <WifiIcon size={24} color="#7257FF" />
+            <WifiIcon size={24} color="#34A853" />
           </div>
           <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#121217', margin: '0 0 6px' }}>
             Set New Password
@@ -157,7 +157,7 @@ function ResetPasswordForm() {
             color: '#92400E', fontSize: '12.5px', marginBottom: 18, textAlign: 'center',
             lineHeight: 1.4,
           }}>
-            ⏳ Verifying your reset token... If this persists, the link may have expired. Go back to <a href="/auth" style={{ color: '#7257FF', fontWeight: 700 }}>Sign In</a> and request a new reset.
+            ⏳ Verifying your reset token... If this persists, the link may have expired. Go back to <a href="/auth" style={{ color: '#34A853', fontWeight: 700 }}>Sign In</a> and request a new reset.
           </div>
         )}
 
@@ -230,7 +230,7 @@ function ResetPasswordForm() {
           <a
             href="/auth"
             style={{
-              color: '#7257FF',
+              color: '#34A853',
               fontSize: '13px',
               fontWeight: 700,
               textDecoration: 'none',

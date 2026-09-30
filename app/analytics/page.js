@@ -346,7 +346,7 @@ export default function AnalyticsPage() {
         <div className="category-card" onClick={() => router.push('/packages')}>
           <div className="category-card-top">
             <div className="category-icon-box">
-              <WifiIcon size={18} color="#7257FF" />
+              <WifiIcon size={18} color="#34A853" />
             </div>
             <span className="category-count-badge">{hourlyPasses.count} passes</span>
           </div>

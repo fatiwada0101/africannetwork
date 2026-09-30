@@ -125,7 +125,7 @@ export default function SupportTicketModal({ isOpen, onClose, initialTxRef = '' 
                 padding: '8px',
                 borderRadius: '10px',
                 border: 'none',
-                background: activeTab === 'new' ? 'var(--primary, #7257FF)' : 'var(--bg, #F3F4F6)',
+                background: activeTab === 'new' ? 'var(--primary, #34A853)' : 'var(--bg, #F3F4F6)',
                 color: activeTab === 'new' ? '#FFFFFF' : 'var(--text-secondary, #71717a)',
                 fontSize: '13px',
                 fontWeight: 700,
@@ -142,7 +142,7 @@ export default function SupportTicketModal({ isOpen, onClose, initialTxRef = '' 
                 padding: '8px',
                 borderRadius: '10px',
                 border: 'none',
-                background: activeTab === 'history' ? 'var(--primary, #7257FF)' : 'var(--bg, #F3F4F6)',
+                background: activeTab === 'history' ? 'var(--primary, #34A853)' : 'var(--bg, #F3F4F6)',
                 color: activeTab === 'history' ? '#FFFFFF' : 'var(--text-secondary, #71717a)',
                 fontSize: '13px',
                 fontWeight: 700,
@@ -185,7 +185,7 @@ export default function SupportTicketModal({ isOpen, onClose, initialTxRef = '' 
                 width: '100%',
                 padding: '11px',
                 borderRadius: '12px',
-                background: 'var(--primary, #7257FF)',
+                background: 'var(--primary, #34A853)',
                 color: '#FFFFFF',
                 fontWeight: 700,
                 fontSize: '13px',
@@ -240,7 +240,7 @@ export default function SupportTicketModal({ isOpen, onClose, initialTxRef = '' 
                       {t.description}
                     </p>
                     {t.admin_notes && (
-                      <div style={{ fontSize: '11px', color: '#7257FF', marginTop: '6px', fontWeight: 600 }}>
+                      <div style={{ fontSize: '11px', color: '#34A853', marginTop: '6px', fontWeight: 600 }}>
                         💬 Support Response: {t.admin_notes}
                       </div>
                     )}

@@ -126,7 +126,7 @@ export default function MikroTikDiagnosticsAndLogs({
                 </span>
               </div>
               <p className="sa-card-sub" style={{ marginTop: '4px' }}>
-                Target: <code style={{ color: '#7257FF', fontWeight: 700 }}>{testResult.target || 'Router Endpoint'}</code>
+                Target: <code style={{ color: '#34A853', fontWeight: 700 }}>{testResult.target || 'Router Endpoint'}</code>
                 {testResult.duration_ms ? ` • Latency: ${testResult.duration_ms}ms` : ''}
               </p>
             </div>
@@ -365,7 +365,7 @@ export default function MikroTikDiagnosticsAndLogs({
               <div style={{ fontSize: '10.5px', color: '#8E8E93', fontWeight: 700, textTransform: 'uppercase' }}>
                 Avg Response
               </div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: '#7257FF', marginTop: '2px' }}>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#34A853', marginTop: '2px' }}>
                 {logsData.stats.avgLatencyMs ? `${logsData.stats.avgLatencyMs}ms` : '—'}
               </div>
             </div>
@@ -387,7 +387,7 @@ export default function MikroTikDiagnosticsAndLogs({
                   key={log.id}
                   style={{
                     background: isSelected ? 'rgba(114, 87, 255, 0.05)' : '#F9FAFB',
-                    border: isSelected ? '1.5px solid #7257FF' : '1px solid #ECEEF2',
+                    border: isSelected ? '1.5px solid #34A853' : '1px solid #ECEEF2',
                     borderRadius: '12px',
                     padding: '12px 16px',
                     transition: 'all 0.15s ease',
@@ -433,7 +433,7 @@ export default function MikroTikDiagnosticsAndLogs({
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#7257FF',
+                          color: '#34A853',
                           fontSize: '12px',
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -507,7 +507,7 @@ export default function MikroTikDiagnosticsAndLogs({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#7257FF',
+                    color: '#34A853',
                     fontSize: '12.5px',
                     fontWeight: 700,
                     cursor: 'pointer',

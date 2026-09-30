@@ -458,7 +458,7 @@ export default function FallbackVouchersTab({ adminHeaders, showToast, plans }) 
                           {item.duration}
                         </span>
                         {item.plan_id && (
-                          <span style={{ fontSize: '0.7rem', color: '#A78BFA', background: 'rgba(167, 139, 250, 0.1)', padding: '2px 6px', borderRadius: 4 }}>
+                          <span style={{ fontSize: '0.7rem', color: '#81C995', background: 'rgba(129, 201, 149, 0.1)', padding: '2px 6px', borderRadius: 4 }}>
                             {item.plan_id}
                           </span>
                         )}
@@ -491,7 +491,7 @@ export default function FallbackVouchersTab({ adminHeaders, showToast, plans }) 
                         style={{
                           padding: '5px 10px',
                           fontSize: '0.78rem',
-                          background: '#7257FF',
+                          background: '#34A853',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 4
@@ -552,7 +552,7 @@ export default function FallbackVouchersTab({ adminHeaders, showToast, plans }) 
                 type="button"
                 onClick={() => setInputMode('auto')}
                 style={{
-                  background: inputMode === 'auto' ? '#7257FF' : 'transparent',
+                  background: inputMode === 'auto' ? '#34A853' : 'transparent',
                   color: '#fff',
                   border: 'none',
                   padding: '5px 12px',
@@ -568,7 +568,7 @@ export default function FallbackVouchersTab({ adminHeaders, showToast, plans }) 
                 type="button"
                 onClick={() => setInputMode('manual')}
                 style={{
-                  background: inputMode === 'manual' ? '#7257FF' : 'transparent',
+                  background: inputMode === 'manual' ? '#34A853' : 'transparent',
                   color: '#fff',
                   border: 'none',
                   padding: '5px 12px',
@@ -633,8 +633,8 @@ export default function FallbackVouchersTab({ adminHeaders, showToast, plans }) 
                       style={{
                         flex: 1,
                         padding: '8px 0',
-                        background: autoQuantity === qty ? '#7257FF' : 'rgba(255,255,255,0.06)',
-                        border: `1px solid ${autoQuantity === qty ? '#7257FF' : 'rgba(255,255,255,0.1)'}`,
+                        background: autoQuantity === qty ? '#34A853' : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${autoQuantity === qty ? '#34A853' : 'rgba(255,255,255,0.1)'}`,
                         borderRadius: 8,
                         color: '#fff',
                         fontWeight: 600,
@@ -956,7 +956,7 @@ export default function FallbackVouchersTab({ adminHeaders, showToast, plans }) 
                   {data.vouchers.map(v => (
                     <tr key={v.id}>
                       <td>
-                        <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: 4, color: '#A78BFA' }}>
+                        <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: 4, color: '#81C995' }}>
                           {v.voucher_code}
                         </code>
                       </td>

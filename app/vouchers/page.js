@@ -131,7 +131,7 @@ export default function VouchersPage() {
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
           Your active hotspot passes for <strong>{networkInfo.wifi_ssid}</strong>.
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '11.5px', color: '#7257FF', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '11.5px', color: '#34A853', fontWeight: 700 }}>
           <span>🌐 Hotspot Portal:</span>
           <span style={{ fontFamily: 'monospace' }}>http://{networkInfo.hotspot_url}</span>
         </div>
@@ -159,7 +159,7 @@ export default function VouchersPage() {
               margin: '0 auto 16px',
             }}
           >
-            <WifiIcon size={28} color="#7257FF" />
+            <WifiIcon size={28} color="#34A853" />
           </div>
           <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)' }}>
             No Vouchers Found
@@ -267,7 +267,7 @@ export default function VouchersPage() {
                     style={{
                       padding: '8px 12px',
                       background: '#FFFFFF',
-                      color: '#7257FF',
+                      color: '#34A853',
                       borderRadius: '999px',
                       fontSize: '12px',
                       fontWeight: 700,

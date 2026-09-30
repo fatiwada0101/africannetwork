@@ -1811,7 +1811,7 @@ export default function SuperAdminPage() {
         <div className="sa-login-card">
           <div className="sa-login-badge-wrap">
             <div className="sa-login-avatar-ring">
-              <ShieldIcon size={28} color="#7257FF" />
+              <ShieldIcon size={28} color="#34A853" />
             </div>
             <span className="sa-badge sa-badge-obsidian">Super Admin Gateway</span>
           </div>
@@ -1877,7 +1877,7 @@ export default function SuperAdminPage() {
               <button key={tab.id} className={`sa-nav-button ${active ? 'active' : ''}`}
                 onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); }}>
                 <div className="sa-nav-icon-wrap">
-                  <Icon size={18} color={active ? '#7257FF' : '#8E8E93'} />
+                  <Icon size={18} color={active ? '#34A853' : '#8E8E93'} />
                 </div>
                 <span className="sa-nav-label">{tab.label}</span>
                 {tab.id === 'sessions' && sessions.length > 0 && (
@@ -1923,7 +1923,7 @@ export default function SuperAdminPage() {
               <WifiIcon size={16} color="#121217" /><span>User App</span>
             </button>
             <button className="sa-action-btn sa-btn-refresh" onClick={fetchCoreData} disabled={loading}>
-              <RefreshIcon size={16} color="#7257FF" /><span>{loading ? 'Syncing...' : 'Refresh'}</span>
+              <RefreshIcon size={16} color="#34A853" /><span>{loading ? 'Syncing...' : 'Refresh'}</span>
             </button>
             <div className="sa-admin-avatar-pill">
               <span className="sa-admin-avatar">A</span>
