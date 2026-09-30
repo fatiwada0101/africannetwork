@@ -1,0 +1,218 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "African Network Wi-Fi Hotspot & Wallet Platform API",
+    "description": "Comprehensive REST API specification for MikroTik captive portal authentication, wallet top-up, atomic voucher generation, multi-router roaming, reseller wholesale networks, and support ticketing.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "African Network Support",
+      "email": "support@asuktech.com",
+      "url": "https://asuktech.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "https://wifi.asuktech.com/api",
+      "description": "Production Hotspot Gateway"
+    }
+  ],
+  "tags": [
+    { "name": "Vouchers", "description": "Voucher lifecycle, status check, gifting, and validation" },
+    { "name": "Wallet", "description": "Atomic wallet balance, top-up, and wallet-to-wallet transfers" },
+    { "name": "Roaming", "description": "ISP-grade multi-router roaming handoff and location services" },
+    { "name": "Reseller", "description": "Agent wholesale purchases and commission tracking" },
+    { "name": "Scheduler", "description": "Dynamic pricing, Happy Hour, and bandwidth rules" },
+    { "name": "Support", "description": "Customer helpdesk and support ticket system" },
+    { "name": "Tenant", "description": "White-label multi-tenant SaaS resolution" },
+    { "name": "Super Admin", "description": "Admin platform control and audits" }
+  ],
+  "paths": {
+    "/vouchers/status": {
+      "get": {
+        "tags": ["Vouchers"],
+        "summary": "Check active voucher status & data quota consumption",
+        "parameters": [
+          { "name": "code", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "mac", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active session details with byte quotas and remaining duration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "active": { "type": "boolean" },
+                    "bytes_limit": { "type": "integer" },
+                    "bytes_used": { "type": "integer" },
+                    "percentage_used": { "type": "number" },
+                    "is_low_data": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vouchers/gift": {
+      "post": {
+        "tags": ["Vouchers"],
+        "summary": "Gift or transfer a voucher to another customer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["voucherId", "recipientPhone"],
+                "properties": {
+                  "voucherId": { "type": "string" },
+                  "recipientPhone": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Voucher transferred successfully" }
+        }
+      }
+    },
+    "/wallet/transfer": {
+      "post": {
+        "tags": ["Wallet"],
+        "summary": "Atomic wallet-to-wallet transfer between registered users",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["senderId", "recipientIdentifier", "amount"],
+                "properties": {
+                  "senderId": { "type": "string" },
+                  "recipientIdentifier": { "type": "string" },
+                  "amount": { "type": "number", "minimum": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Transfer executed atomically" }
+        }
+      }
+    },
+    "/roaming/handoff": {
+      "post": {
+        "tags": ["Roaming"],
+        "summary": "Execute 1-tap roaming handoff to target router",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["voucherCode", "targetRouterId"],
+                "properties": {
+                  "voucherCode": { "type": "string" },
+                  "targetRouterId": { "type": "string" },
+                  "userMac": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User provisioned on target router" }
+        }
+      }
+    },
+    "/reseller/purchase": {
+      "post": {
+        "tags": ["Reseller"],
+        "summary": "Wholesale bulk voucher purchase with agent discount",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userId", "planId", "quantity"],
+                "properties": {
+                  "userId": { "type": "string" },
+                  "planId": { "type": "string" },
+                  "quantity": { "type": "integer", "minimum": 1, "maximum": 100 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Bulk vouchers generated and wallet deducted" }
+        }
+      }
+    },
+    "/settings/scheduler": {
+      "get": {
+        "tags": ["Scheduler"],
+        "summary": "Get active Happy Hour, off-peak, and weekend pricing rules",
+        "responses": {
+          "200": { "description": "Active scheduler rules in WAT timezone" }
+        }
+      }
+    },
+    "/support/tickets": {
+      "get": {
+        "tags": ["Support"],
+        "summary": "Retrieve customer tickets",
+        "responses": {
+          "200": { "description": "List of support tickets" }
+        }
+      },
+      "post": {
+        "tags": ["Support"],
+        "summary": "Open a new customer support ticket",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["subject", "description"],
+                "properties": {
+                  "userId": { "type": "string" },
+                  "subject": { "type": "string" },
+                  "description": { "type": "string" },
+                  "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+                  "tx_ref": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Ticket created" }
+        }
+      }
+    },
+    "/tenant/config": {
+      "get": {
+        "tags": ["Tenant"],
+        "summary": "Retrieve white-label tenant branding configuration",
+        "parameters": [
+          { "name": "host", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Tenant branding and palette tokens" }
+        }
+      }
+    }
+  }
+}

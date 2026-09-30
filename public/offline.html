@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline | African Network Hotspot</title>
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card-bg: #16171f;
+      --border: #232530;
+      --primary: #3b82f6;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .offline-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 28px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .icon-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    p { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px; }
+    .tips-box {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: left;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .tips-box strong { color: var(--text); }
+    .tips-box ol { padding-left: 18px; margin-top: 8px; }
+    .tips-box li { margin-bottom: 6px; }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:active { transform: scale(0.98); }
+    #cached-vouchers-container {
+      margin-top: 16px;
+      text-align: left;
+      display: none;
+    }
+    .voucher-chip {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #10b981;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 6px;
+      display: block;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="icon-badge">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+
+    <h1>No Internet Connection</h1>
+    <p>You appear to be offline. If you are near an African Network Wi-Fi hotspot, follow these steps to connect.</p>
+
+    <div class="tips-box">
+      <strong>How to get online:</strong>
+      <ol>
+        <li>Connect to Wi-Fi: <strong>AfricanNetwork-Hotspot</strong></li>
+        <li>Open your browser to trigger login screen</li>
+        <li>Enter your saved voucher code to activate high-speed access</li>
+      </ol>
+    </div>
+
+    <div id="cached-vouchers-container">
+      <strong style="font-size: 12px; color: var(--text);">Saved Voucher Codes on this Device:</strong>
+      <div id="vouchers-list"></div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <button class="btn" onclick="window.location.reload()">Check Connection</button>
+    </div>
+  </div>
+
+  <script>
+    try {
+      const savedCode = localStorage.getItem('last_voucher_code') || localStorage.getItem('active_voucher_code');
+      if (savedCode) {
+        document.getElementById('cached-vouchers-container').style.display = 'block';
+        const chip = document.createElement('div');
+        chip.className = 'voucher-chip';
+        chip.textContent = savedCode;
+        document.getElementById('vouchers-list').appendChild(chip);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  </script>
+</body>
+</html>
