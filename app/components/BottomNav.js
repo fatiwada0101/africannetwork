@@ -51,8 +51,9 @@ export default function BottomNav() {
             className="dock-item"
             onClick={() => router.push(item.path)}
             aria-label={item.label}
+            title={item.label}
           >
-            <IconComponent size={20} color="#8E8E93" />
+            <IconComponent size={20} color="#9CA3AF" />
           </button>
         );
       })}

@@ -256,42 +256,44 @@ function CaptiveLoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%)',
-      fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-      padding: '20px',
+      background: 'radial-gradient(ellipse at 50% 0%, rgba(52, 168, 83, 0.18) 0%, #0d0f12 55%, #08090a 100%)',
+      fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
+      padding: '24px 20px',
     }}>
       <div style={{
         width: '100%',
         maxWidth: 420,
-        background: 'rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: 24,
-        border: '1px solid rgba(255,255,255,0.1)',
-        padding: '36px 28px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        background: 'rgba(20, 24, 28, 0.82)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        borderRadius: 26,
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        padding: '38px 28px 30px',
+        boxShadow: '0 24px 64px rgba(0, 0, 0, 0.6), 0 0 32px rgba(52, 168, 83, 0.14)',
       }}>
         {/* Logo & Title */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           {logoUrl ? (
-            <img src={logoUrl} alt="" style={{ width: 56, height: 56, borderRadius: 16, marginBottom: 14 }} />
+            <img src={logoUrl} alt="" style={{ width: 60, height: 60, borderRadius: 18, marginBottom: 14 }} />
           ) : (
             <div style={{
-              width: 60, height: 60, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #34A853, #2D9249)',
+              width: 64, height: 64, borderRadius: '22px',
+              background: 'linear-gradient(135deg, #34A853 0%, #1E8E3E 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 14px', fontSize: 26,
-              boxShadow: '0 8px 24px rgba(34,197,94,0.35)',
+              margin: '0 auto 16px', fontSize: 28,
+              boxShadow: '0 10px 28px rgba(52, 168, 83, 0.42)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
             }}>
-              {String.fromCodePoint(0x1F4F6)}
+              📶
             </div>
           )}
           <h1 style={{
-            color: '#fff', fontSize: '22px', fontWeight: 800, margin: '0 0 6px',
-            letterSpacing: '-0.3px',
+            color: '#FFFFFF', fontSize: '23px', fontWeight: 800, margin: '0 0 6px',
+            letterSpacing: '-0.4px',
           }}>
             {appName || 'Wi-Fi Login Portal'}
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', margin: 0 }}>
+          <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '13.5px', margin: 0 }}>
             {wifiSsid ? `Connected to ${wifiSsid}` : 'Enter your voucher code to connect'}
           </p>
         </div>
@@ -300,25 +302,27 @@ function CaptiveLoginPage() {
         {success ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{
-              width: 64, height: 64, borderRadius: '50%',
-              background: 'rgba(34,197,94,0.15)',
-              border: '2px solid rgba(34,197,94,0.4)',
+              width: 68, height: 68, borderRadius: '50%',
+              background: 'rgba(52, 168, 83, 0.16)',
+              border: '2px solid rgba(52, 168, 83, 0.45)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px', fontSize: 28,
+              margin: '0 auto 16px', fontSize: 30,
+              boxShadow: '0 0 24px rgba(52, 168, 83, 0.3)',
             }}>
-              {String.fromCodePoint(0x2705)}
+              ✓
             </div>
-            <h2 style={{ color: '#34A853', fontSize: '19px', fontWeight: 800, margin: '0 0 6px' }}>
+            <h2 style={{ color: '#34A853', fontSize: '20px', fontWeight: 800, margin: '0 0 6px' }}>
               Connected & Authenticated!
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: '0 0 16px' }}>
+            <p style={{ color: 'rgba(255, 255, 255, 0.65)', fontSize: '13px', margin: '0 0 16px' }}>
               Submitting session to router... Granting internet access.
             </p>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '6px 14px', borderRadius: 999,
-              background: 'rgba(34,197,94,0.1)', color: '#34A853',
-              fontSize: '12px', fontWeight: 600,
+              padding: '6px 16px', borderRadius: 999,
+              background: 'rgba(52, 168, 83, 0.15)', color: '#34A853',
+              fontSize: '12px', fontWeight: 700,
+              border: '1px solid rgba(52, 168, 83, 0.3)',
             }}>
               <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#34A853' }} />
               Active Hotspot Session
@@ -328,7 +332,7 @@ function CaptiveLoginPage() {
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              border: '3px solid rgba(255,255,255,0.1)',
+              border: '3px solid rgba(255, 255, 255, 0.1)',
               borderTop: '3px solid #34A853',
               margin: '0 auto 16px',
               animation: 'spin 1s linear infinite',
@@ -336,17 +340,17 @@ function CaptiveLoginPage() {
             <h2 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 6px' }}>
               Auto-Authenticating...
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: '0 0 12px' }}>
+            <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '13px', margin: '0 0 12px' }}>
               Logging in with voucher code <strong style={{ color: '#34A853', fontFamily: 'monospace' }}>{code}</strong>
             </p>
             <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
           </div>
         ) : (
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: 18 }}>
+            <div style={{ marginBottom: 20 }}>
               <label style={{
-                display: 'block', color: 'rgba(255,255,255,0.65)', fontSize: '12px',
-                fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.6px',
+                display: 'block', color: 'rgba(255, 255, 255, 0.7)', fontSize: '11.5px',
+                fontWeight: 800, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.8px',
               }}>
                 Voucher Code
               </label>
@@ -358,23 +362,29 @@ function CaptiveLoginPage() {
                 autoFocus
                 autoComplete="off"
                 style={{
-                  width: '100%', padding: '14px 18px', fontSize: '18px', fontWeight: 800,
-                  background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)',
-                  borderRadius: 14, color: '#fff', outline: 'none', textAlign: 'center',
-                  letterSpacing: '2px', fontFamily: 'monospace',
-                  transition: 'border-color 0.2s',
+                  width: '100%', padding: '16px 18px', fontSize: '19px', fontWeight: 800,
+                  background: 'rgba(255, 255, 255, 0.07)', border: '1.5px solid rgba(255, 255, 255, 0.16)',
+                  borderRadius: 16, color: '#FFFFFF', outline: 'none', textAlign: 'center',
+                  letterSpacing: '2.5px', fontFamily: "'JetBrains Mono', monospace",
+                  transition: 'all 0.2s ease',
                   boxSizing: 'border-box',
                 }}
-                onFocus={e => e.target.style.borderColor = '#34A853'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                onFocus={e => {
+                  e.target.style.borderColor = '#34A853';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(52, 168, 83, 0.2)';
+                }}
+                onBlur={e => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.16)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
             {error && (
               <div style={{
-                padding: '11px 14px', background: 'rgba(239,68,68,0.12)',
-                border: '1px solid rgba(239,68,68,0.35)', borderRadius: 12,
-                color: '#f87171', fontSize: '12.5px', marginBottom: 16, textAlign: 'center',
+                padding: '12px 14px', background: 'rgba(239, 68, 68, 0.14)',
+                border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: 14,
+                color: '#F87171', fontSize: '12.5px', marginBottom: 18, textAlign: 'center',
                 lineHeight: 1.4,
               }}>
                 ⚠️ {error}
@@ -385,12 +395,12 @@ function CaptiveLoginPage() {
               type="submit"
               disabled={loading || !code.trim()}
               style={{
-                width: '100%', padding: '15px', fontSize: '15px', fontWeight: 800,
-                background: loading ? '#555' : 'linear-gradient(135deg, #34A853, #2D9249)',
-                color: '#fff', border: 'none', borderRadius: 14, cursor: loading ? 'wait' : 'pointer',
+                width: '100%', padding: '16px', fontSize: '15px', fontWeight: 800,
+                background: loading ? '#333' : 'linear-gradient(135deg, #34A853 0%, #1E8E3E 100%)',
+                color: '#FFFFFF', border: 'none', borderRadius: 16, cursor: loading ? 'wait' : 'pointer',
                 letterSpacing: '0.3px',
-                boxShadow: loading ? 'none' : '0 4px 20px rgba(34,197,94,0.35)',
-                transition: 'all 0.2s',
+                boxShadow: loading ? 'none' : '0 6px 24px rgba(52, 168, 83, 0.42)',
+                transition: 'all 0.2s ease',
               }}
             >
               {loading ? 'Connecting to Router...' : '⚡ Connect to Internet'}
@@ -401,9 +411,9 @@ function CaptiveLoginPage() {
         {/* Buy Voucher Link */}
         <div style={{
           textAlign: 'center', marginTop: 22, paddingTop: 18,
-          borderTop: '1px solid rgba(255,255,255,0.08)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
         }}>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '0 0 8px' }}>
+          <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12.5px', margin: '0 0 10px' }}>
             {"Don't have an active voucher?"}
           </p>
           <a
@@ -411,10 +421,10 @@ function CaptiveLoginPage() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               color: '#34A853', fontSize: '13.5px', fontWeight: 800,
-              textDecoration: 'none', padding: '8px 16px',
-              background: 'rgba(52, 168, 83, 0.12)', borderRadius: 10,
+              textDecoration: 'none', padding: '10px 18px',
+              background: 'rgba(52, 168, 83, 0.12)', borderRadius: 12,
               border: '1px solid rgba(52, 168, 83, 0.25)',
-              transition: 'background 0.2s',
+              transition: 'all 0.2s ease',
             }}
           >
             🛒 Buy a Data Plan Online →
@@ -424,14 +434,14 @@ function CaptiveLoginPage() {
         {/* Device & Network Details */}
         <div style={{
           marginTop: 18, padding: '10px 14px',
-          background: 'rgba(255,255,255,0.03)', borderRadius: 10,
-          fontSize: '11px', color: 'rgba(255,255,255,0.3)', textAlign: 'center',
-          lineHeight: 1.5,
+          background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12,
+          fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', textAlign: 'center',
+          lineHeight: 1.6, border: '1px solid rgba(255, 255, 255, 0.05)',
         }}>
-          {mac && <span>MAC: <strong style={{ color: 'rgba(255,255,255,0.5)' }}>{mac}</strong> </span>}
+          {mac && <span>MAC: <strong style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{mac}</strong> </span>}
           {mac && ip && <span>• </span>}
-          {ip && <span>IP: <strong style={{ color: 'rgba(255,255,255,0.5)' }}>{ip}</strong> </span>}
-          <div>Portal: <strong style={{ color: 'rgba(255,255,255,0.5)' }}>{hotspotUrl}</strong></div>
+          {ip && <span>IP: <strong style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{ip}</strong> </span>}
+          <div>Portal: <strong style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{hotspotUrl || '10.0.0.1'}</strong></div>
         </div>
       </div>
     </div>

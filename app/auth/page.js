@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 import { supabase } from '../../lib/supabase';
 import BottomNav from '../components/BottomNav';
 import {
@@ -23,6 +24,7 @@ import {
 export default function AuthPage() {
   const router = useRouter();
   const { signUp, signIn, signOut, user, profile, wallet, loading: authLoading } = useAuth();
+  const { appName } = useBranding();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -143,8 +145,8 @@ export default function AuthPage() {
                 display: 'inline-block',
                 padding: '4px 12px',
                 borderRadius: '999px',
-                background: 'rgba(16, 185, 129, 0.12)',
-                color: '#10B981',
+                background: 'rgba(52, 168, 83, 0.12)',
+                color: '#34A853',
                 fontSize: '12px',
                 fontWeight: 700,
               }}
@@ -317,7 +319,7 @@ export default function AuthPage() {
         </div>
 
         <h2 className="auth-title">
-          {forgotMode ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Join African Network'}
+          {forgotMode ? 'Reset Password' : isLogin ? 'Welcome Back' : `Join ${appName || 'African Network'}`}
         </h2>
         <p className="auth-subtitle">
           {forgotMode

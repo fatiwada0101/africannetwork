@@ -291,6 +291,13 @@ export default function HomePage() {
     setCheckoutOpen(true);
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
     <div className="app-shell">
       <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -383,17 +390,49 @@ export default function HomePage() {
       </header>
 
       {/* ── Greeting Header ── */}
-      <div className="greeting-section">
-        <h1 className="greeting-title">Hello {displayName}!</h1>
-        <p className="greeting-sub">Let&apos;s manage your Wi-Fi &amp; wallet.</p>
+      <div className="greeting-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <h1 className="greeting-title">{getGreeting()}, {displayName}!</h1>
+          <p className="greeting-sub">Manage your high-speed Wi-Fi &amp; wallet.</p>
+        </div>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          borderRadius: '999px',
+          background: 'rgba(52, 168, 83, 0.12)',
+          border: '1px solid rgba(52, 168, 83, 0.25)',
+          color: '#34A853',
+          fontSize: '12px',
+          fontWeight: 700,
+        }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34A853', boxShadow: '0 0 8px #34A853' }} />
+          Hotspot Ready
+        </div>
       </div>
 
       {/* ── Primary Wallet Card ── */}
       <div className="wallet-card-container">
-        {/* Violet Card */}
+        {/* Google Green Master Card */}
         <div className="card-front-violet">
           <div className="card-front-top">
             <div className="card-front-logo">
+              <div style={{
+                width: 30,
+                height: 20,
+                borderRadius: 4,
+                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                border: '1px solid rgba(255,255,255,0.4)',
+                boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5)',
+                marginRight: 4,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <div style={{ width: 12, height: 8, border: '1px solid rgba(0,0,0,0.25)', borderRadius: 2 }} />
+              </div>
               <WifiIcon size={20} color="#FFFFFF" />
               <span>{appName} Hotspot</span>
             </div>
@@ -456,6 +495,32 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* ── Active Session Live Widget ── */}
+      {isPassActive && activeVoucher && (
+        <div className="live-session-widget">
+          <div className="live-session-left">
+            <div className="live-session-indicator">
+              <WifiIcon size={22} color="#34A853" />
+              <span className="live-pulse-dot" />
+            </div>
+            <div>
+              <div className="live-session-title">
+                Active Wi-Fi Session
+              </div>
+              <div className="live-session-timer">
+                {countdownText} remaining
+              </div>
+            </div>
+          </div>
+          <button
+            className="live-session-btn"
+            onClick={() => router.push(`/vouchers/status?code=${encodeURIComponent(activeVoucher.code)}`)}
+          >
+            Session Info →
+          </button>
+        </div>
+      )}
+
       {/* ── Quick Action 4-Grid ── */}
       <div className="quick-grid-4">
         <div
@@ -502,7 +567,41 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Passes section removed — users navigate to /packages via Quick Action or bottom nav */}
+      {/* ── Popular Passes Showcase ── */}
+      {plans.length > 0 && (
+        <div className="featured-passes-section">
+          <div className="section-head">
+            <h2 className="section-title">Popular Passes</h2>
+            <span
+              className="section-view-all"
+              onClick={() => router.push('/packages')}
+              style={{ color: '#34A853', fontWeight: 700 }}
+            >
+              View All Passes →
+            </span>
+          </div>
+          <div className="featured-passes-grid">
+            {plans.slice(0, 3).map((plan, idx) => (
+              <div key={plan.id || idx} className="featured-pass-card">
+                {idx === 0 && <span className="featured-pass-badge">Popular</span>}
+                <div>
+                  <div className="featured-pass-name">{plan.name}</div>
+                  <div className="featured-pass-duration">{plan.duration || 'Unlimited'}</div>
+                </div>
+                <div>
+                  <div className="featured-pass-price">{formatPrice(plan.price)}</div>
+                  <button
+                    className="featured-pass-btn"
+                    onClick={() => handleOpenCheckout(plan)}
+                  >
+                    Get Pass
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Click outside to close notification dropdown */}
       {notifOpen && (
