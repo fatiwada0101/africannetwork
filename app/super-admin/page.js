@@ -1985,19 +1985,18 @@ export default function SuperAdminPage() {
             formatPrice={formatPrice}
             routerUsers={routerUsers}
             maxDayRevenue={maxDayRevenue}
-            quickPlan={quickPlan}
-            setQuickPlan={setQuickPlan}
             plans={plans}
-            quickQty={quickQty}
-            setQuickQty={setQuickQty}
-            quickCodeLen={quickCodeLen}
-            setQuickCodeLen={setQuickCodeLen}
-            handleQuickGenerate={handleQuickGenerate}
-            quickGenLoading={quickGenLoading}
             setActiveTab={setActiveTab}
             sessions={sessions}
             formatBytes={formatBytes}
             kickUser={kickUser}
+            handleTestMikrotik={handleTestMikrotik}
+            testLoading={testLoading}
+            testResult={testResult}
+            mikrotikForm={mikrotikForm}
+            flutterwaveForm={flutterwaveForm}
+            copyCode={copyCode}
+            copiedPin={copiedPin}
           />
         )}
 
@@ -2124,7 +2123,7 @@ export default function SuperAdminPage() {
             setHotspotSettings={setHotspotSettings}
             pollingConfig={pollingConfig}
             syncingHotspot={syncingHotspot}
-            syncHotspot={syncHotspot}
+            handleSyncHotspot={handleSyncHotspot}
             adminHeaders={adminHeaders}
             showToast={showToast}
             handleRestartMikrotik={handleRestartMikrotik}
@@ -2138,6 +2137,12 @@ export default function SuperAdminPage() {
             autoSetupProgress={autoSetupProgress}
             setAutoSetupProgress={setAutoSetupProgress}
             autoSetupResult={autoSetupResult}
+            portalConfig={portalConfig}
+            brandingForm={brandingForm}
+            portalPushProgress={portalPushProgress}
+            setPortalPushProgress={setPortalPushProgress}
+            handlePushLoginPageWithProgress={handlePushLoginPageWithProgress}
+            portalPushing={portalPushing}
           />
         )}
 
@@ -2158,6 +2163,7 @@ export default function SuperAdminPage() {
             brandingForm={brandingForm}
             adminHeaders={adminHeaders}
             showToast={showToast}
+            fetchChangeHistory={fetchChangeHistory}
           />
         )}
 

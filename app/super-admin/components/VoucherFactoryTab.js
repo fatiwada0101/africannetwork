@@ -49,6 +49,23 @@ export default function VoucherFactoryTab({
     showDataLimit: true, showSerial: true,
   });
   const [cardExporting, setCardExporting] = useState(false);
+  const [copiedPin, setCopiedPin] = useState('');
+
+  const copyCode = (code) => {
+    if (!code) return;
+    navigator.clipboard?.writeText(code);
+    setCopiedPin(code);
+    showToast('PIN copied to clipboard');
+    setTimeout(() => setCopiedPin(''), 2500);
+  };
+
+  const copyAllVouchers = () => {
+    const list = getProcessedVouchers();
+    if (list.length === 0) return;
+    const text = list.map(v => v.code || v.voucher_code).join('\n');
+    navigator.clipboard?.writeText(text);
+    showToast(`Copied ${list.length} voucher PINs to clipboard`);
+  };
 
   const fetchBatchHistory = useCallback(async () => {
     setBatchHistoryLoading(true);
@@ -929,7 +946,7 @@ export default function VoucherFactoryTab({
                         <button
                           className="sa-btn-pill-small"
                           style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
-                          onClick={() => handleExportCsv(targetVouchersForExport())}
+                          onClick={() => handleExportCsv(getTargetVouchersForExport())}
                           disabled={exportCount === 0}
                         >
                           📊 Download Excel / CSV ({exportCount})

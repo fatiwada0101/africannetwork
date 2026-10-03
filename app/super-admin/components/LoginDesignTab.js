@@ -9,6 +9,7 @@ export default function LoginDesignTab({
   brandingForm,
   adminHeaders,
   showToast,
+  fetchChangeHistory = () => {},
 }) {
   const [portalTemplate, setPortalTemplate] = useState('midnight-glass');
   const [portalConfig, setPortalConfig] = useState({
@@ -253,7 +254,7 @@ export default function LoginDesignTab({
                       });
                       if (res.ok) {
                         showToast('✅ Login design settings saved!');
-                        fetchChangeHistory();
+                        fetchChangeHistory?.();
                       } else {
                         showToast('❌ Failed to save login design');
                       }

@@ -255,6 +255,13 @@ export default function WalledGardenTab({
     finally { setWgSyncing(false); }
   };
 
+  const handleAddCustomUrl = async () => {
+    if (!wgCustomUrl.trim()) return;
+    await handleAddWalledGarden(wgCustomUrl.trim(), 'custom', wgCustomComment.trim());
+    setWgCustomUrl('');
+    setWgCustomComment('');
+  };
+
   const handleRemoveWalledGarden = async (entryId, domain, source) => {
     if (!confirm(`Remove "${domain}" from bypass list?`)) return;
     setWgSyncing(true);
