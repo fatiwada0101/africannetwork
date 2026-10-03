@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { supabase } from '../../lib/supabase';
+import { createPaymentHeaders } from '../../lib/payment-client.js';
 import BottomNav from '../components/BottomNav';
 import ReceiptModal from '../components/ReceiptModal';
 import WalletTransferModal from '../components/WalletTransferModal';
@@ -33,6 +34,11 @@ export default function WalletPage() {
   const { user, profile, wallet, refreshWallet, loading: authLoading } = useAuth();
   const { appName } = useBranding();
   const topupProcessingRef = useRef(false);
+  const monnifyCheckoutOpenRef = useRef(false);
+  const [pendingMonnifyTopup, setPendingMonnifyTopup] = useState(null);
+  useEffect(() => {
+    try { setPendingMonnifyTopup(user?.id ? JSON.parse(sessionStorage.getItem(`monnify-topup-${user.id}`) || 'null') : null); } catch {}
+  }, [user?.id]);
   const depositFormRef = useRef(null);
 
   const [activeSegment, setActiveSegment] = useState('deposits'); // 'deposits' | 'vouchers'
@@ -40,6 +46,8 @@ export default function WalletPage() {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(false);
   const [flwConfig, setFlwConfig] = useState({ publicKey: '', enabled: false });
+  const [monnifyConfig, setMonnifyConfig] = useState({ apiKey: '', contractCode: '', enabled: false, isTest: true });
+  const [activeGateway, setActiveGateway] = useState('flutterwave');
   const [selectedReceiptTx, setSelectedReceiptTx] = useState(null);
   const [showStatementModal, setShowStatementModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -78,12 +86,14 @@ export default function WalletPage() {
     });
   };
 
-  // Fetch Flutterwave public settings
+  // Fetch payment gateway public settings
   useEffect(() => {
     fetch('/api/settings/public')
       .then((r) => r.json())
       .then((d) => {
         if (d.flutterwave) setFlwConfig(d.flutterwave);
+        if (d.monnify) setMonnifyConfig(d.monnify);
+        if (d.activeGateway) setActiveGateway(d.activeGateway);
       })
       .catch(() => {});
   }, []);
@@ -208,7 +218,7 @@ export default function WalletPage() {
   const projectedBalance = walletBalance + depositNum;
 
   const handleFundWallet = async () => {
-    if (loading || topupProcessingRef.current) return;
+    if (loading || topupProcessingRef.current || monnifyCheckoutOpenRef.current) return;
 
     if (!user) {
       showToast('Please sign in to top up your wallet');
@@ -221,7 +231,77 @@ export default function WalletPage() {
       return;
     }
 
-    // Flutterwave checkout is REQUIRED — no free credits
+    // ── MONNIFY TOP-UP ──
+    if (activeGateway === 'monnify') {
+      if (!monnifyConfig.apiKey || !monnifyConfig.contractCode || typeof window.MonnifySDK === 'undefined') {
+        showToast('Monnify payment gateway is loading or not configured. Please try again.');
+        return;
+      }
+
+      monnifyCheckoutOpenRef.current = true;
+      setLoading(true);
+      let order;
+      let verificationStarted = false;
+      try {
+        const { data } = await supabase.auth.getSession();
+        const initRes = await fetch('/api/payments/monnify/initialize', {
+          method: 'POST', headers: createPaymentHeaders(data?.session?.access_token),
+          body: JSON.stringify({ purpose: 'wallet_topup', amount: depositNum }),
+        });
+        order = await initRes.json();
+        if (!initRes.ok) throw new Error(order.error || 'Unable to start checkout');
+        setPendingMonnifyTopup(order);
+        try { sessionStorage.setItem(`monnify-topup-${user.id}`, JSON.stringify(order)); } catch {}
+      } catch (error) {
+        showToast(error.message);
+        setLoading(false);
+        monnifyCheckoutOpenRef.current = false;
+        return;
+      }
+      const paymentRef = order.reference;
+
+      try { window.MonnifySDK.initialize({
+        amount: order.amount,
+        currency: 'NGN',
+        reference: paymentRef,
+        customerFullName: displayName,
+        customerEmail: user?.email || 'customer@africannetwork.com',
+        apiKey: order.apiKey,
+        contractCode: order.contractCode,
+        paymentDescription: `${appName} Wallet Deposit - ${formatPrice(depositNum)}`,
+        metadata: {
+          user_id: user.id,
+          type: 'wallet_topup',
+        },
+        onLoadStart: () => {},
+        onLoadComplete: () => {},
+        onComplete: async function (response) {
+          if (verificationStarted) return;
+          verificationStarted = true;
+          if (response.paymentStatus === 'PAID' || response.status === 'SUCCESS') {
+            const transactionId = response.transactionReference || paymentRef;
+            await finalizeTopup(order.amount, paymentRef, transactionId, 'monnify');
+          } else {
+            showToast('Payment was cancelled or failed');
+            setLoading(false);
+            monnifyCheckoutOpenRef.current = false;
+          }
+        },
+        onClose: function () {
+          if (!verificationStarted) {
+            setLoading(false);
+            monnifyCheckoutOpenRef.current = false;
+          }
+        },
+      }); } catch (error) {
+        showToast(error.message || 'Unable to open Monnify checkout');
+        setLoading(false);
+        monnifyCheckoutOpenRef.current = false;
+      }
+      return;
+    }
+
+    // ── FLUTTERWAVE TOP-UP ──
     if (!flwConfig.publicKey || typeof window.FlutterwaveCheckout === 'undefined') {
       showToast('Payment gateway is loading or not configured. Please try again in a moment.');
       return;
@@ -251,7 +331,7 @@ export default function WalletPage() {
       callback: async function (response) {
         if (response.status === 'successful' || response.status === 'completed') {
           const transactionId = response.transaction_id || response.id;
-          await finalizeTopup(depositNum, txRef, transactionId);
+          await finalizeTopup(depositNum, txRef, transactionId, 'flutterwave');
         } else {
           showToast('Payment was cancelled or failed');
         }
@@ -262,7 +342,7 @@ export default function WalletPage() {
     });
   };
 
-  const finalizeTopup = async (amount, ref, transactionId) => {
+  const finalizeTopup = async (amount, ref, transactionId, gw) => {
     if (topupProcessingRef.current) return;
     topupProcessingRef.current = true;
     setLoading(true);
@@ -270,7 +350,7 @@ export default function WalletPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
 
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = createPaymentHeaders(token);
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -283,11 +363,16 @@ export default function WalletPage() {
           user_id: user.id,
           flw_ref: ref,
           transaction_id: transactionId,
+          gateway: gw || activeGateway,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Top-up failed');
+      if (gw === 'monnify') {
+        setPendingMonnifyTopup(null);
+        try { sessionStorage.removeItem(`monnify-topup-${user.id}`); } catch {}
+      }
 
       await refreshWallet();
       await fetchTransactions();
@@ -298,6 +383,7 @@ export default function WalletPage() {
     } finally {
       setLoading(false);
       topupProcessingRef.current = false;
+      monnifyCheckoutOpenRef.current = false;
     }
   };
 
@@ -311,6 +397,12 @@ export default function WalletPage() {
 
   return (
     <div className="app-shell">
+      {pendingMonnifyTopup && user && (
+        <div className="checkout-security-notice">
+          <p>A Monnify deposit is saved. Check it before depositing again.</p>
+          <button className="btn btn-primary" disabled={loading} onClick={() => finalizeTopup(pendingMonnifyTopup.amount, pendingMonnifyTopup.reference, pendingMonnifyTopup.reference, 'monnify')}>Check saved deposit</button>
+        </div>
+      )}
       {/* ── Screen Topbar ── */}
       <div className="screen-topbar">
         <button
@@ -1077,4 +1169,3 @@ export default function WalletPage() {
     </div>
   );
 }
-

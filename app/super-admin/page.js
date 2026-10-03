@@ -125,6 +125,10 @@ export default function SuperAdminPage() {
   const [flutterwaveForm, setFlutterwaveForm] = useState({
     public_key: '', secret_key: '', webhook_secret: '', enabled: false,
   });
+  const [monnifyForm, setMonnifyForm] = useState({
+    api_key: '', secret_key: '', contract_code: '', client_secret: '', enabled: false, is_test: true,
+  });
+  const [activeGateway, setActiveGateway] = useState('flutterwave');
 
   // Branding
   const [brandingForm, setBrandingForm] = useState({
@@ -371,6 +375,8 @@ export default function SuperAdminPage() {
         setSettings(s);
         if (s.mikrotik) setMikrotikForm(prev => ({ ...prev, ...s.mikrotik }));
         if (s.flutterwave) setFlutterwaveForm(prev => ({ ...prev, ...s.flutterwave }));
+        if (s.monnify) setMonnifyForm(prev => ({ ...prev, ...s.monnify }));
+        if (s.payment_gateway) setActiveGateway(s.payment_gateway.active || 'flutterwave');
         if (s.branding) setBrandingForm(prev => ({ ...prev, ...s.branding }));
         if (s.hotspot_settings) setHotspotSettings(prev => ({ ...prev, ...s.hotspot_settings }));
         if (s.polling_config) setPollingConfig(prev => ({ ...prev, ...s.polling_config }));
@@ -699,6 +705,46 @@ export default function SuperAdminPage() {
       });
       if (res.ok) showToast('✅ Flutterwave saved!');
       else showToast('❌ Failed to save');
+    } catch { showToast('Network error'); }
+    finally {
+      actionLockRef.current = false;
+      setActionBusy(false);
+    }
+  };
+
+  const saveMonnify = async () => {
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+    setActionBusy(true);
+    try {
+      const res = await fetch('/api/super-admin/settings', {
+        method: 'POST', headers: adminHeaders(),
+        body: JSON.stringify({ key: 'monnify', value: monnifyForm }),
+      });
+      if (res.ok) showToast('Monnify saved!');
+      else {
+        const result = await res.json();
+        const details = Object.values(result.details || {}).flat().join('; ');
+        showToast(details || result.error || 'Failed to save Monnify');
+      }
+    } catch { showToast('Network error'); }
+    finally {
+      actionLockRef.current = false;
+      setActionBusy(false);
+    }
+  };
+
+  const saveActiveGateway = async () => {
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+    setActionBusy(true);
+    try {
+      const res = await fetch('/api/super-admin/settings', {
+        method: 'POST', headers: adminHeaders(),
+        body: JSON.stringify({ key: 'payment_gateway', value: { active: activeGateway } }),
+      });
+      if (res.ok) showToast('Active gateway set to ' + (activeGateway === 'monnify' ? 'Monnify' : 'Flutterwave'));
+      else showToast('Failed to save');
     } catch { showToast('Network error'); }
     finally {
       actionLockRef.current = false;
@@ -2118,9 +2164,15 @@ export default function SuperAdminPage() {
         {/* ═══ TAB: PAYMENT GATEWAY ═══ */}
         {activeTab === 'payments' && (
           <PaymentGatewayTab
+            activeGateway={activeGateway}
+            setActiveGateway={setActiveGateway}
+            saveActiveGateway={saveActiveGateway}
             flutterwaveForm={flutterwaveForm}
             setFlutterwaveForm={setFlutterwaveForm}
             saveFlutterwave={saveFlutterwave}
+            monnifyForm={monnifyForm}
+            setMonnifyForm={setMonnifyForm}
+            saveMonnify={saveMonnify}
             webhookCopied={webhookCopied}
             setWebhookCopied={setWebhookCopied}
             showToast={showToast}

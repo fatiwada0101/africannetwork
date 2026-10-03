@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node test/run-all.js"
+    "test": "node test/run-all.js && node --test test/monnify.test.mjs",
+    "test:monnify": "node --test test/monnify.test.mjs"
   },
   "imports": {
     "@/*": "./*"
@@ -21,10 +22,12 @@
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "undici": "^8.11.2",
     "xlsx": "^0.18.5",
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/node": "22.20.3",
     "@types/react": "19.3.0",
     "typescript": "7.0.2"

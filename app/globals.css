@@ -113,6 +113,220 @@ body.dark, html.dark body, [data-theme="dark"] body {
   color: var(--text-primary);
 }
 
+/* Dark mode: Pass cards (packages page) */
+.dark .pass-card-modern,
+[data-theme="dark"] .pass-card-modern {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+.dark .pass-card-modern:hover,
+[data-theme="dark"] .pass-card-modern:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dark .pass-price-large,
+[data-theme="dark"] .pass-price-large {
+  color: var(--text-primary);
+}
+
+.dark .pass-card-title,
+[data-theme="dark"] .pass-card-title {
+  color: var(--text-primary);
+}
+
+.dark .pass-card-specs,
+[data-theme="dark"] .pass-card-specs {
+  color: var(--text-secondary);
+}
+
+.dark .pass-card-bottom,
+[data-theme="dark"] .pass-card-bottom {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .pass-wifi-icon-badge,
+[data-theme="dark"] .pass-wifi-icon-badge {
+  background: rgba(52, 168, 83, 0.15);
+}
+
+.dark .pass-tag-pill,
+[data-theme="dark"] .pass-tag-pill {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.dark .pass-buy-action-btn,
+[data-theme="dark"] .pass-buy-action-btn {
+  background: #FFFFFF;
+  color: #121217;
+}
+
+/* Dark mode: Featured pass cards (home page) */
+.dark .featured-pass-card,
+[data-theme="dark"] .featured-pass-card {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+.dark .featured-pass-name,
+[data-theme="dark"] .featured-pass-name {
+  color: var(--text-primary);
+}
+
+.dark .featured-pass-duration,
+[data-theme="dark"] .featured-pass-duration {
+  color: var(--text-secondary);
+}
+
+.dark .featured-pass-btn,
+[data-theme="dark"] .featured-pass-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode: Category filter pills (packages page) */
+.dark .packages-filter-pill,
+[data-theme="dark"] .packages-filter-pill {
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
+.dark .packages-filter-pill.active,
+[data-theme="dark"] .packages-filter-pill.active {
+  background: #FFFFFF;
+  color: #121217;
+  border-color: #FFFFFF;
+}
+
+/* Dark mode: Circle icon buttons (back buttons, menu) */
+.dark .circle-icon-btn,
+[data-theme="dark"] .circle-icon-btn {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+.dark .circle-icon-btn svg,
+[data-theme="dark"] .circle-icon-btn svg {
+  color: var(--text-primary);
+}
+
+/* Dark mode: Quick action grid */
+.dark .quick-icon-box,
+[data-theme="dark"] .quick-icon-box {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+/* Dark mode: Live session widget */
+.dark .live-session-widget,
+[data-theme="dark"] .live-session-widget {
+  background: var(--surface);
+  border-color: rgba(52, 168, 83, 0.3);
+}
+
+/* Dark mode: Pass list card */
+.dark .pass-list-card,
+[data-theme="dark"] .pass-list-card {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* Dark mode: Chart card */
+.dark .chart-card,
+[data-theme="dark"] .chart-card {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* Dark mode: Checkout sheet */
+.dark .checkout-sheet,
+[data-theme="dark"] .checkout-sheet {
+  background: var(--card-dark);
+  color: var(--text-primary);
+}
+
+/* Dark mode: Notification dropdown */
+.dark .notif-dropdown,
+[data-theme="dark"] .notif-dropdown {
+  background: var(--card-dark);
+  border-color: var(--border-subtle);
+}
+
+/* Dark mode: User avatar */
+.dark .user-avatar-circle,
+[data-theme="dark"] .user-avatar-circle {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+/* Dark mode: Transfer/Funding card (wallet page) */
+.dark .transfer-card,
+[data-theme="dark"] .transfer-card {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+.dark .transfer-user-row,
+[data-theme="dark"] .transfer-user-row {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Dark mode: Analytics account selector */
+.dark .account-selector-card,
+[data-theme="dark"] .account-selector-card {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+.dark .selector-icon-circle,
+[data-theme="dark"] .selector-icon-circle {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Dark mode: Capsule segmented toggle (wallet page) */
+.dark .capsule-toggle,
+[data-theme="dark"] .capsule-toggle {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark .capsule-btn,
+[data-theme="dark"] .capsule-btn {
+  color: var(--text-secondary);
+}
+
+/* Dark mode: Topup method cards */
+.dark .topup-method-card,
+[data-theme="dark"] .topup-method-card {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* Dark mode: General stat cards */
+.dark .stat-card,
+[data-theme="dark"] .stat-card {
+  background: var(--surface);
+  border-color: var(--border-subtle);
+}
+
+/* Dark mode: Bar chart tooltip & fills */
+.dark .bar-fill,
+[data-theme="dark"] .bar-fill {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .bar-fill.active,
+[data-theme="dark"] .bar-fill.active {
+  background: var(--text-primary);
+}
+
 /* --- Reset & Base --- */
 *, *::before, *::after {
   box-sizing: border-box;

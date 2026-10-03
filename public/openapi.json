@@ -6,8 +6,8 @@
     "version": "2.0.0",
     "contact": {
       "name": "African Network Support",
-      "email": "support@asuktech.com",
-      "url": "https://asuktech.com"
+      "email": "support@africannetwork.com.ng",
+      "url": "https://africannetwork.com.ng"
     }
   },
   "servers": [
@@ -16,28 +16,68 @@
       "description": "Local Development Server"
     },
     {
-      "url": "https://wifi.asuktech.com/api",
+      "url": "https://wifi.africannetwork.com.ng/api",
       "description": "Production Hotspot Gateway"
     }
   ],
   "tags": [
-    { "name": "Vouchers", "description": "Voucher lifecycle, status check, gifting, and validation" },
-    { "name": "Wallet", "description": "Atomic wallet balance, top-up, and wallet-to-wallet transfers" },
-    { "name": "Roaming", "description": "ISP-grade multi-router roaming handoff and location services" },
-    { "name": "Reseller", "description": "Agent wholesale purchases and commission tracking" },
-    { "name": "Scheduler", "description": "Dynamic pricing, Happy Hour, and bandwidth rules" },
-    { "name": "Support", "description": "Customer helpdesk and support ticket system" },
-    { "name": "Tenant", "description": "White-label multi-tenant SaaS resolution" },
-    { "name": "Super Admin", "description": "Admin platform control and audits" }
+    {
+      "name": "Vouchers",
+      "description": "Voucher lifecycle, status check, gifting, and validation"
+    },
+    {
+      "name": "Wallet",
+      "description": "Atomic wallet balance, top-up, and wallet-to-wallet transfers"
+    },
+    {
+      "name": "Roaming",
+      "description": "ISP-grade multi-router roaming handoff and location services"
+    },
+    {
+      "name": "Reseller",
+      "description": "Agent wholesale purchases and commission tracking"
+    },
+    {
+      "name": "Scheduler",
+      "description": "Dynamic pricing, Happy Hour, and bandwidth rules"
+    },
+    {
+      "name": "Support",
+      "description": "Customer helpdesk and support ticket system"
+    },
+    {
+      "name": "Tenant",
+      "description": "White-label multi-tenant SaaS resolution"
+    },
+    {
+      "name": "Super Admin",
+      "description": "Admin platform control and audits"
+    }
   ],
   "paths": {
     "/vouchers/status": {
       "get": {
-        "tags": ["Vouchers"],
+        "tags": [
+          "Vouchers"
+        ],
         "summary": "Check active voucher status & data quota consumption",
         "parameters": [
-          { "name": "code", "in": "query", "required": false, "schema": { "type": "string" } },
-          { "name": "mac", "in": "query", "required": false, "schema": { "type": "string" } }
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mac",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -47,11 +87,21 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "active": { "type": "boolean" },
-                    "bytes_limit": { "type": "integer" },
-                    "bytes_used": { "type": "integer" },
-                    "percentage_used": { "type": "number" },
-                    "is_low_data": { "type": "boolean" }
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "bytes_limit": {
+                      "type": "integer"
+                    },
+                    "bytes_used": {
+                      "type": "integer"
+                    },
+                    "percentage_used": {
+                      "type": "number"
+                    },
+                    "is_low_data": {
+                      "type": "boolean"
+                    }
                   }
                 }
               }
@@ -62,7 +112,9 @@
     },
     "/vouchers/gift": {
       "post": {
-        "tags": ["Vouchers"],
+        "tags": [
+          "Vouchers"
+        ],
         "summary": "Gift or transfer a voucher to another customer",
         "requestBody": {
           "required": true,
@@ -70,23 +122,34 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["voucherId", "recipientPhone"],
+                "required": [
+                  "voucherId",
+                  "recipientPhone"
+                ],
                 "properties": {
-                  "voucherId": { "type": "string" },
-                  "recipientPhone": { "type": "string" }
+                  "voucherId": {
+                    "type": "string"
+                  },
+                  "recipientPhone": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Voucher transferred successfully" }
+          "200": {
+            "description": "Voucher transferred successfully"
+          }
         }
       }
     },
     "/wallet/transfer": {
       "post": {
-        "tags": ["Wallet"],
+        "tags": [
+          "Wallet"
+        ],
         "summary": "Atomic wallet-to-wallet transfer between registered users",
         "requestBody": {
           "required": true,
@@ -94,24 +157,39 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["senderId", "recipientIdentifier", "amount"],
+                "required": [
+                  "senderId",
+                  "recipientIdentifier",
+                  "amount"
+                ],
                 "properties": {
-                  "senderId": { "type": "string" },
-                  "recipientIdentifier": { "type": "string" },
-                  "amount": { "type": "number", "minimum": 50 }
+                  "senderId": {
+                    "type": "string"
+                  },
+                  "recipientIdentifier": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 50
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Transfer executed atomically" }
+          "200": {
+            "description": "Transfer executed atomically"
+          }
         }
       }
     },
     "/roaming/handoff": {
       "post": {
-        "tags": ["Roaming"],
+        "tags": [
+          "Roaming"
+        ],
         "summary": "Execute 1-tap roaming handoff to target router",
         "requestBody": {
           "required": true,
@@ -119,24 +197,37 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["voucherCode", "targetRouterId"],
+                "required": [
+                  "voucherCode",
+                  "targetRouterId"
+                ],
                 "properties": {
-                  "voucherCode": { "type": "string" },
-                  "targetRouterId": { "type": "string" },
-                  "userMac": { "type": "string" }
+                  "voucherCode": {
+                    "type": "string"
+                  },
+                  "targetRouterId": {
+                    "type": "string"
+                  },
+                  "userMac": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "User provisioned on target router" }
+          "200": {
+            "description": "User provisioned on target router"
+          }
         }
       }
     },
     "/reseller/purchase": {
       "post": {
-        "tags": ["Reseller"],
+        "tags": [
+          "Reseller"
+        ],
         "summary": "Wholesale bulk voucher purchase with agent discount",
         "requestBody": {
           "required": true,
@@ -144,40 +235,64 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["userId", "planId", "quantity"],
+                "required": [
+                  "userId",
+                  "planId",
+                  "quantity"
+                ],
                 "properties": {
-                  "userId": { "type": "string" },
-                  "planId": { "type": "string" },
-                  "quantity": { "type": "integer", "minimum": 1, "maximum": 100 }
+                  "userId": {
+                    "type": "string"
+                  },
+                  "planId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Bulk vouchers generated and wallet deducted" }
+          "200": {
+            "description": "Bulk vouchers generated and wallet deducted"
+          }
         }
       }
     },
     "/settings/scheduler": {
       "get": {
-        "tags": ["Scheduler"],
+        "tags": [
+          "Scheduler"
+        ],
         "summary": "Get active Happy Hour, off-peak, and weekend pricing rules",
         "responses": {
-          "200": { "description": "Active scheduler rules in WAT timezone" }
+          "200": {
+            "description": "Active scheduler rules in WAT timezone"
+          }
         }
       }
     },
     "/support/tickets": {
       "get": {
-        "tags": ["Support"],
+        "tags": [
+          "Support"
+        ],
         "summary": "Retrieve customer tickets",
         "responses": {
-          "200": { "description": "List of support tickets" }
+          "200": {
+            "description": "List of support tickets"
+          }
         }
       },
       "post": {
-        "tags": ["Support"],
+        "tags": [
+          "Support"
+        ],
         "summary": "Open a new customer support ticket",
         "requestBody": {
           "required": true,
@@ -185,32 +300,155 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["subject", "description"],
+                "required": [
+                  "subject",
+                  "description"
+                ],
                 "properties": {
-                  "userId": { "type": "string" },
-                  "subject": { "type": "string" },
-                  "description": { "type": "string" },
-                  "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
-                  "tx_ref": { "type": "string" }
+                  "userId": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high",
+                      "urgent"
+                    ]
+                  },
+                  "tx_ref": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Ticket created" }
+          "201": {
+            "description": "Ticket created"
+          }
         }
       }
     },
     "/tenant/config": {
       "get": {
-        "tags": ["Tenant"],
+        "tags": [
+          "Tenant"
+        ],
         "summary": "Retrieve white-label tenant branding configuration",
         "parameters": [
-          { "name": "host", "in": "query", "required": false, "schema": { "type": "string" } }
+          {
+            "name": "host",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Tenant branding and palette tokens" }
+          "200": {
+            "description": "Tenant branding and palette tokens"
+          }
+        }
+      }
+    },
+    "/payments/monnify/initialize": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Create a server-owned Monnify checkout order",
+        "description": "Uses catalog pricing for vouchers and binds wallet top-ups to the authenticated user. Returns the amount and reference to pass to the Monnify SDK.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "purpose"
+                ],
+                "properties": {
+                  "purpose": {
+                    "type": "string",
+                    "enum": [
+                      "wallet_topup",
+                      "voucher_purchase"
+                    ]
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 100,
+                    "maximum": 10000000
+                  },
+                  "plan_id": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "auto_renew": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout order created"
+          },
+          "400": {
+            "description": "Invalid checkout details"
+          },
+          "401": {
+            "description": "Wallet checkout requires authentication"
+          },
+          "503": {
+            "description": "Gateway disabled, unconfigured, or required migration missing"
+          }
+        }
+      }
+    },
+    "/webhook/monnify": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Process a verified Monnify payment notification",
+        "description": "Live events require monnify-signature HMAC-SHA512. Unsigned sandbox events are verified against the authenticated Monnify API. Both wallet and voucher orders use atomic/idempotent settlement.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "monnify-signature",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required for production notifications"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fulfilled, duplicate, or ignored event"
+          },
+          "401": {
+            "description": "Invalid or missing live signature"
+          },
+          "503": {
+            "description": "Storage, gateway, or provisioning needs retry"
+          }
         }
       }
     }

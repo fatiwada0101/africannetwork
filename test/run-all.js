@@ -285,7 +285,7 @@ async function runMasterSuite() {
 
   await test('5.5: White-Label Multi-Tenant SaaS Resolution', () => {
     assert(extractHostname('wifi.mybrand.com:3000') === 'wifi.mybrand.com', 'Hostname extraction must strip ports');
-    assert(DEFAULT_TENANT.slug === 'asuk-tech', 'Default primary tenant must be asuk-tech');
+    assert(DEFAULT_TENANT.slug === 'african-network', 'Default primary tenant must be african-network');
     assert(fs.existsSync(path.resolve('app/api/tenant/config/route.js')), 'tenant/config route must exist');
   });
 

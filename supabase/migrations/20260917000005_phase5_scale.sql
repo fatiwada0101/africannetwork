@@ -10,11 +10,11 @@ CREATE TABLE IF NOT EXISTS public.tenants (
   slug TEXT UNIQUE NOT NULL,
   custom_domain TEXT UNIQUE,
   branding JSONB DEFAULT '{
-    "brandName": "Asuk Tech",
+    "brandName": "African Network",
     "themeColor": "#3b82f6",
     "primaryColor": "emerald",
     "supportPhone": "+2348000000000",
-    "supportEmail": "support@asuktech.com"
+    "supportEmail": "support@africannetwork.com.ng"
   }'::jsonb,
   contact_email TEXT,
   status TEXT DEFAULT 'active', -- 'active', 'suspended', 'pending'
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.tenants (
 
 -- Seed primary tenant
 INSERT INTO public.tenants (name, slug, custom_domain, contact_email)
-VALUES ('Asuk Tech Hotspot', 'asuk-tech', 'asuktech.com', 'admin@asuktech.com')
+VALUES ('African Network Hotspot', 'african-network', 'africannetwork.com.ng', 'admin@africannetwork.com.ng')
 ON CONFLICT (slug) DO NOTHING;
 
 -- 2. Add tenant_id to key tables for multi-tenant isolation

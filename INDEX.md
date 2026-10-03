@@ -1,263 +1,201 @@
-# Project Index: African Network WiFi Hotspot & Super Admin Platform
+# African Network project index
 
-> **Comprehensive Technical Catalog, Directory Map, Architecture Specification, and API Reference**
+Verified from the local working tree on 2026-10-03 (Africa/Lagos).
 
----
+## Project and workspace
 
-## 1. Project Overview
+African Network (also called Asuk Tech in older notes) is a Nigerian Wi-Fi hotspot platform: customers buy prepaid internet passes, maintain an NGN wallet, and connect through MikroTik captive portals. Operators manage plans, routers, vouchers, payments, and customer operations through a super-admin dashboard.
 
-The **African Network WiFi Platform** is a full-stack ISP / Wi-Fi Hotspot captive portal, prepaid digital wallet, and network administration platform designed for MikroTik RouterOS v7.x networks.
+The Git repository and runnable app are this `wifi-app/` directory. Its parent contains prototype assets, screenshots, project skills, and a second copy of the documentation. Run application commands from `wifi-app/`.
 
-### Core Capabilities
-1. **Public / Guest "Quick Buy"**: Frictionless flow where users select an internet plan, pay through Flutterwave checkout, and receive an instant MikroTik voucher code without requiring prior account registration.
-2. **Member Portal & Digital Wallet**: Authenticated user dashboard with an in-app prepaid wallet, one-click voucher generation deducted from balance, top-ups via Flutterwave, transaction ledger, and voucher history.
-3. **MikroTik RouterOS v7 REST Integration**: Server-side engine communicating directly with MikroTik RouterOS v7 REST endpoints (`PUT`, `GET`, `DELETE`, `PATCH`) with HTTP Basic Auth and SSL bypass support.
-4. **Super Admin Suite (`/super-admin`)**: Full-featured back-office control center for network operators featuring real-time router health, active session monitoring, user kicking, bulk voucher manufacturing, financial analytics (PDF/Excel exports), dynamic credential synchronization, and database migration tooling.
+This index describes the current working tree, including pre-existing uncommitted edits. It is a navigation and onboarding reference, not certification of deployed functionality. No remote database, gateway, router, or deployment was contacted while indexing. Credential values are deliberately omitted.
 
----
+## Stack and commands
 
-## 2. Workspace File Structure
+- Next.js **16.3.4**, App Router; React and React DOM **19.2.8** (package.json).
+- Most source is JavaScript/JSX. TypeScript **7.0.2** and `types/platform.d.ts` are present; `tsconfig.json` has `allowJs: true`, `strict: false`.
+- Supabase provides PostgreSQL, user authentication, RLS, and Realtime.
+- MikroTik RouterOS REST integration supports direct access and router polling.
+- Flutterwave and Monnify checkout/verification code are present; Paystack has a helper and webhook route. Do not assume these gateways have equivalent checkout support.
+- Styling is custom CSS; PDF/export helpers use jsPDF, AutoTable, and xlsx. QR generation uses qrcode; validation uses Zod; admin authentication uses bcryptjs and jsonwebtoken.
+- Vercel deployment configuration is in `vercel.json`. PWA support uses `app/manifest.js`, `public/sw.js`, and `public/offline.html`.
 
-```
-Asuk Tech/
-├── prompt.txt                         # Original project requirements & architecture specification
-├── sample.html                        # Prototype single-file mobile captive portal & wallet mock-up
-├── screenshot 1.jpeg                  # Visual UI design reference 1
-├── screenshot 2.jpeg                  # Visual UI design reference 2
-├── supabase access tokens.txt         # Supabase CLI / deployment access token
-├── INDEX.md                           # This comprehensive project index & catalog
-└── wifi-app/                          # Full-Stack Next.js 16 Web Application
-    ├── package.json                   # App manifest & dependencies (Next 16, React 19, Supabase, jsPDF, xlsx)
-    ├── package-lock.json              # Dependency lockfile
-    ├── README.md                      # Deployment & setup documentation
-    ├── AGENTS.md                      # Next.js agent operational rules
-    ├── next.config.mjs                # Next.js runtime configuration
-    ├── jsconfig.json                  # Path aliases configuration (@/* -> ./*)
-    ├── vercel.json                    # Vercel deployment configuration
-    ├── .env.example                   # Template environment variables
-    ├── .env.local                     # Local environment configuration
-    │
-    ├── app/                           # Next.js App Router root
-    │   ├── layout.js                  # Global application layout, metadata & context providers
-    │   ├── globals.css                # Master CSS design system (Telecom yellow & clean light palette)
-    │   ├── page.js                    # Homepage (Hero balance, promo banner, plan cards, quick actions)
-    │   ├── manifest.js                # PWA web app manifest
-    │   │
-    │   ├── admin/                     # Admin landing / redirect
-    │   │   └── page.js
-    │   │
-    │   ├── analytics/                 # Usage & network traffic analytics
-    │   │   └── page.js
-    │   │
-    │   ├── auth/                      # User authentication (Login & Registration)
-    │   │   ├── page.js                # Auth form with Supabase session management
-    │   │   └── reset-password/
-    │   │       └── page.js            # Password recovery flow
-    │   │
-    │   ├── login/                     # Captive portal router login page
-    │   │   └── page.js                # Responsive hotspot voucher login interface
-    │   │
-    │   ├── packages/                  # Plan catalog view
-    │   │   └── page.js                # Browsable list of all active hotspot packages
-    │   │
-    │   ├── status/                    # User connection status
-    │   │   └── page.js                # Live connection & IP status
-    │   │
-    │   ├── super-admin/               # Super Admin Control Center
-    │   │   └── page.js                # Comprehensive multi-tab operator dashboard (287 KB)
-    │   │
-    │   ├── vouchers/                  # User vouchers & voucher status
-    │   │   ├── page.js                # User voucher library & printable vouchers
-    │   │   └── status/
-    │   │       └── page.js            # Voucher validity & active uptime checker
-    │   │
-    │   ├── wallet/                    # User prepaid wallet
-    │   │   └── page.js                # Wallet balance, top-up modal, and transaction ledger
-    │   │
-    │   ├── components/                # Reusable UI Components
-    │   │   ├── BottomNav.js           # Floating/raised mobile bottom navigation bar
-    │   │   ├── CheckoutModal.js       # Multi-step checkout modal (Flutterwave & Wallet)
-    │   │   ├── SideDrawer.js          # Slide-out navigation drawer with user links
-    │   │   ├── VoucherModal.js        # Voucher code display with 1-click copy & login link
-    │   │   ├── ReceiptModal.js        # Transaction receipt display & PDF download modal
-    │   │   ├── DatabaseSchemaTab.js   # SQL schema viewer & turnkey setup assistant
-    │   │   ├── MikroTikDiagnosticsAndLogs.js # Live router diagnostics & system logs panel
-    │   │   ├── MikroTikSetupGuide.js  # Interactive visual setup guide for MikroTik v7 REST API
-    │   │   ├── WindowsProgressBar.js  # Windows-themed animated progress indicator
-    │   │   └── Icons.js               # Comprehensive Lucide-style SVG icon system
-    │   │
-    │   ├── context/                   # Global State & Context Providers
-    │   │   ├── AuthContext.js         # Supabase auth session, user role, and wallet balance provider
-    │   │   └── BrandingContext.js     # Dynamic ISP branding, colors, logos, and support info provider
-    │   │
-    │   └── api/                       # Backend API Route Handlers
-    │       ├── admin/
-    │       │   └── stats/route.js     # Operator revenue & sales statistics
-    │       │
-    │       ├── mikrotik/              # MikroTik RouterOS v7 REST Integration
-    │       │   ├── active-sessions/   # GET active sessions & user uptime/bytes
-    │       │   ├── auto-setup/        # POST automated router configuration
-    │       │   ├── create-voucher/    # PUT generate single voucher on router
-    │       │   ├── generate-vouchers/ # POST batch voucher manufacturing
-    │       │   ├── hotspot-profiles/  # GET/POST router user profiles
-    │       │   ├── hotspot-users/     # GET/PATCH router hotspot user records
-    │       │   ├── kick-user/         # DELETE terminate active hotspot session
-    │       │   ├── logs/              # GET router system event logs
-    │       │   ├── polling/           # POST execute pending asynchronous router tasks
-    │       │   ├── push-login-page/   # POST upload custom HTML captive portal to router
-    │       │   ├── reboot/            # POST trigger router system reboot
-    │       │   ├── restore-defaults/  # POST safe restore default hotspot & factory login page
-    │       │   ├── sync-hotspot/      # POST bidirectional sync between router and DB
-    │       │   ├── system-health/     # GET CPU load, memory, uptime, version
-    │       │   ├── test/              # GET router diagnostic test
-    │       │   ├── test-connection/   # POST verify router IP and credentials
-    │       │   └── walled-garden/     # GET/POST manage bypass domains for payments
-    │       │
-    │       ├── notifications/         # GET/PATCH user notifications
-    │       │   └── route.js
-    │       │
-    │       ├── purchase/              # Voucher purchasing pipeline
-    │       │   ├── route.js           # POST initiate purchase or execute wallet purchase
-    │       │   └── verify-payment/    # POST verify Flutterwave transaction and issue voucher
-    │       │
-    │       ├── settings/              # Public runtime configuration
-    │       │   └── public/            # GET branding, support contacts, and public keys
-    │       │
-    │       ├── super-admin/           # Super Admin back-office API
-    │       │   ├── auth/              # POST admin authentication & session tokens
-    │       │   ├── change-history/    # GET/POST configuration audit trail & rollback
-    │       │   ├── fallback-vouchers/ # GET/POST offline emergency voucher pool
-    │       │   ├── finance/           # GET financial analytics & export data
-    │       │   ├── plans/             # GET/POST/PUT/DELETE hotspot internet plans
-    │       │   ├── schema/            # GET/POST database schema check & migrations
-    │       │   └── settings/          # GET/POST dynamic settings (MikroTik, Flutterwave, Branding)
-    │       │
-    │       ├── vouchers/              # Voucher inspection & validation
-    │       │   ├── status/            # GET/POST check voucher uptime & remaining quota
-    │       │   └── validate/          # POST validate voucher before login
-    │       │
-    │       ├── wallet/                # Digital wallet operations
-    │       │   └── topup/             # POST initialize or verify wallet funding via Flutterwave
-    │       │
-    │       └── webhook/               # Payment gateway webhooks
-    │           └── flutterwave/       # POST async payment verification webhook
-    │
-    ├── lib/                           # Core Utilities & Business Logic
-    │   ├── mikrotik.js                # Robust MikroTik RouterOS v7 REST client (SSL bypass, PUT/GET/DELETE/PATCH)
-    │   ├── supabase.js                # Browser Supabase client initialization
-    │   ├── supabase-server.js         # Privileged service_role Supabase server client
-    │   ├── user-auth.js               # Client session & JWT extraction helper
-    │   ├── admin-auth.js              # Admin session verification & permission checks
-    │   ├── changeHistory.js           # Configuration audit logging & 1-click snapshot rollback
-    │   ├── hotspotTemplates.js        # MikroTik captive portal HTML/CSS template engine
-    │   ├── receiptGenerator.js        # PDF & visual receipt generation for transactions
-    │   ├── voucherCardGenerator.js    # Printable voucher sheet & thermal slip layout builder
-    │   └── voucher-utils.js           # Alphanumeric voucher generation & formatting routines
-    │
-    ├── scripts/                       # Database DDL & Automation Scripts
-    │   ├── schema.sql                 # Complete Supabase turnkey SQL schema (Tables, RLS, RPCs, Triggers)
-    │   └── migrate-polling.mjs        # Script to initialize polling tables & tasks
-    │
-    └── public/                        # Static assets (Favicons, logos, icons)
-```
+Commands: `npm install`, `npm run dev`, `npm run build`, `npm start`, `npm test`. No lint script is defined.
 
----
+Read [AGENTS.md](AGENTS.md) before application edits; it requires consulting the relevant installed Next.js guide under `node_modules/next/dist/docs/` before writing code.
 
-## 3. Technology Stack & Key Dependencies
+## Architecture and ownership
 
-| Layer | Technologies |
-|---|---|
-| **Framework** | Next.js 16 (App Router), React 19 |
-| **Styling** | Custom Vanilla CSS Design System with CSS Custom Properties, Glassmorphism, Responsive Mobile-First Grid |
-| **Database & Auth** | Supabase (PostgreSQL 15+, Row Level Security, Atomic Pl/pgSQL Functions) |
-| **Hardware REST API** | MikroTik RouterOS v7.x REST API (`https://<ROUTER_IP>/rest/...`) |
-| **Payment Gateway** | Flutterwave v3 (Standard Checkout Modal & Webhook Integration) |
-| **Document Generation** | `jspdf` (v4.2.1), `jspdf-autotable` (v5.0.8), `xlsx` (v0.18.5) |
+- [app/layout.js](app/layout.js): global layout; wraps the UI in AuthProvider, BrandingProvider, and LanguageProvider; loads payment SDKs and registers the service worker.
+- [app/context/AuthContext.js](app/context/AuthContext.js): Supabase session lifecycle, user profile/wallet loading, wallet database-change and broadcast subscriptions, focus refresh.
+- [app/context/BrandingContext.js](app/context/BrandingContext.js): public runtime settings, branding, palette and theme persistence.
+- [app/context/LanguageContext.js](app/context/LanguageContext.js): English, Nigerian Pidgin, Yoruba, Hausa, and Igbo dictionaries.
+- [app/components/CheckoutModal.js](app/components/CheckoutModal.js): wallet purchase and gateway checkout, verification calls, voucher presentation.
+- [app/super-admin/page.js](app/super-admin/page.js): operator dashboard shell with 21 component files in `app/super-admin/components/`.
+- `app/api/`: 60 filesystem API routes; route-specific authorization, validation, and operations.
+- [middleware.js](middleware.js): API-wide tiered rate limiting, conditional CSRF checking, correlation IDs and response headers.
+- [lib/supabase.js](lib/supabase.js): browser Supabase client. [lib/supabase-server.js](lib/supabase-server.js): lazy service-role client and wallet broadcasts.
+- [lib/mikrotik.js](lib/mikrotik.js): router settings, diagnostics, hotspot users/profiles, sessions, connection logs, queued tasks, walled garden, captive portal upload, reboot/restore operations.
+- [lib/roaming.js](lib/roaming.js): router resolution by identity/GPS/default, remaining-time helpers, cross-router handoff and session records.
+- [lib/scheduler.js](lib/scheduler.js): WAT-based pricing rules. [lib/sms.js](lib/sms.js): Termii delivery and Nigerian phone formatting.
+- [lib/reconciliation.js](lib/reconciliation.js): local transaction versus gateway reconciliation. [lib/paystack.js](lib/paystack.js): Paystack operations/signature helper.
+- [lib/tenant.js](lib/tenant.js): hostname-based tenant/branding resolution with a primary-tenant fallback.
+- [lib/schemas.js](lib/schemas.js): shared Zod schemas and request body validation. [lib/sanitize.js](lib/sanitize.js): sanitization utilities.
+- [lib/logger.js](lib/logger.js): structured console logging, field redaction, financial logging. [lib/changeHistory.js](lib/changeHistory.js): settings history and rollback helpers.
+- `lib/hotspotTemplates.js`, `lib/receiptGenerator.js`, `lib/voucherCardGenerator.js`, `lib/voucher-utils.js`: captive portal templates, receipts, printable voucher sheets, and voucher/reference generation.
 
----
+## Main flows
 
-## 4. Database Schema Catalog (`scripts/schema.sql`)
+### Wallet purchase
 
-### Tables
-1. **`public.profiles`**: Extended user profile linked 1-to-1 with `auth.users(id)`. Stores phone, full_name, role (`customer` | `admin`), and creation timestamp.
-2. **`public.wallets`**: Customer prepaid balance ledger. Enforces `CHECK (balance >= 0)`.
-3. **`public.transactions`**: Financial transaction audit log. Tracks type (`wallet_topup`, `quick_buy`, `voucher_purchase`), amount, Flutterwave reference (`flw_ref`), status (`pending`, `successful`, `failed`), and metadata.
-4. **`public.vouchers`**: Generated Wi-Fi hotspot vouchers. Contains voucher_code, profile_name, price, duration, data_limit, status (`active`, `used`, `expired`), batch_id, and optional link to `transactions(id)`.
-5. **`public.plans`**: Configurable hotspot internet packages (e.g., 1 Hour, 24 Hours, 7 Days) with bandwidth limits (upload/download speed) and pricing.
-6. **`public.notifications`**: In-app notifications delivered to customer dashboards.
-7. **`public.app_settings`**: Key-value JSONB store for dynamic configuration:
-   - `mikrotik`: IP, REST port, username, password, profile defaults.
-   - `flutterwave`: Public Key, Secret Key, Encryption Key, enabled toggle.
-   - `branding`: ISP title, logo URL, currency, support phone/email.
-   - `login_portal`: Captive portal HTML/CSS customization.
-8. **`public.change_history`**: Audit trail recording before/after configuration state snapshots for 1-click rollback.
-9. **`public.pending_router_tasks`**: Asynchronous task queue for router provisioning when router is temporarily unreachable.
-10. **`public.fallback_vouchers`**: Pre-generated offline voucher cache ensuring service continuity during network interruptions.
+`CheckoutModal` sends an authenticated POST to `/api/purchase`. The server validates the user, reads authoritative plan pricing from `plans`, checks for a recent matching purchase, and calls `adjust_wallet_balance` to deduct funds. It provisions or queues a router user through `createOrQueueHotspotUser`; when the router path fails or is unconfigured, it tries `claim_fallback_voucher`. Failure paths attempt refunds. Successful purchases persist transaction/voucher records and notify the user.
 
-### Stored Procedures & Atomic Functions
-- **`public.adjust_wallet_balance(p_user_id, p_amount, p_operation)`**: Atomic debit/credit function preventing balance race conditions and negative balances.
-- **`public.handle_new_user()`**: Trigger function executed upon `auth.users` creation to initialize profile and wallet entries automatically.
+Wallet deduction is atomic at the RPC level; the complete purchase spans multiple database and router operations. The recent-purchase check is not a single atomic transaction across that whole flow.
 
----
+### Gateway purchase and wallet funding
 
-## 5. MikroTik RouterOS v7 REST API Implementation
+Checkout callbacks call `/api/purchase/verify-payment`; wallet funding calls `/api/wallet/topup`. These routes load gateway configuration, verify with the selected gateway, and persist the resulting voucher or wallet credit. Flutterwave, Monnify, and Paystack webhook routes provide separate server-to-server processing. Reference checks and database constraints are used for duplicate prevention; live concurrency and callback/webhook races were not exercised during indexing.
 
-The integration adheres strictly to RouterOS v7 ECMA-404 REST API conventions:
-- **Protocol & Auth**: HTTPS with HTTP Basic Authentication (`Authorization: Basic <base64>`).
-- **SSL Bypass**: Employs an HTTPS agent with `rejectUnauthorized: false` to allow self-signed certificates.
-- **String Types**: Converts all numbers, booleans, and parameters to string representations as required by RouterOS JSON parser.
+### Router access and roaming
 
-### Key REST Methods
-- **Create Hotspot User**: `PUT /rest/ip/hotspot/user`
-- **Read Active Sessions**: `GET /rest/ip/hotspot/active` or `POST /rest/ip/hotspot/active/print`
-- **Disconnect / Kick User**: `DELETE /rest/ip/hotspot/active/{.id}`
-- **Update Hotspot User**: `PATCH /rest/ip/hotspot/user/{.id}`
-- **System Health & Resources**: `GET /rest/system/resource`
-- **System Reboot**: `POST /rest/system/reboot`
-- **System Logs**: `GET /rest/log`
-- **Walled Garden Entries**: `PUT /rest/ip/hotspot/walled-garden`
+Direct mode calls RouterOS from the server. Polling mode queues work in `pending_router_tasks`; the router fetches tasks and reports completion at `/api/mikrotik/polling` using a shared secret. Admin polling setup/script/status routes support deployment and diagnosis. Roaming routes call `lib/roaming.js` to resolve target routers and move a voucher/session while tracking remaining entitlement.
 
----
+### Operator control
 
-## 6. Payment Flow Architecture
+`/super-admin` coordinates modular tabs for finance, plans, branding, gateways, router configuration, hotspot users/profiles, live sessions, health, voucher manufacturing/fallback stock, locations, resellers, support, analytics, tenants, database schema, and history.
 
-### Flow 1: Guest "Quick Buy"
-1. Guest navigates to `/` and taps a plan.
-2. Inputs email or phone number in [`CheckoutModal.js`](file:///c:/Users/DEEPMIND/Desktop/Asuk%20Tech/wifi-app/app/components/CheckoutModal.js).
-3. Opens Flutterwave Inline Checkout.
-4. On authorization, payment is verified via [`/api/purchase/verify-payment`](file:///c:/Users/DEEPMIND/Desktop/Asuk%20Tech/wifi-app/app/api/purchase/verify-payment).
-5. Router user is provisioned via `lib/mikrotik.js`.
-6. Voucher is saved to `public.vouchers` and displayed on-screen with 1-click copy and auto-connect buttons.
+## Authentication and request boundaries
 
-### Flow 2: Authenticated Member Wallet
-1. User authenticates via `/auth` and visits `/wallet`.
-2. Taps **"+ Top Up"** to fund wallet via Flutterwave.
-3. Upon verified transaction, `adjust_wallet_balance` credits the wallet.
-4. User selects any plan and clicks **"Pay with Wallet"**.
-5. Server verifies balance, atomically deducts amount, provisions MikroTik voucher, and delivers voucher to user's library.
+- Users: [lib/user-auth.js](lib/user-auth.js) reads `Authorization: Bearer <Supabase access token>` and verifies it with `auth.getUser`. The older skill's cookie-only description does not match this helper.
+- Admins: [lib/admin-auth.js](lib/admin-auth.js) implements bcrypt password verification, 24-hour JWT sessions, per-instance login lockout, and legacy Basic Auth compatibility. Inspect the individual route's selected auth helper before changing it.
+- CSRF: middleware compares `csrf_token` cookie with `X-CSRF-Token` on mutations only when that cookie exists; selected prefixes are exempt.
+- Rate limiting: [lib/rate-limit.js](lib/rate-limit.js) uses a process-local Map; state resets with the instance and is not globally shared.
+- Webhooks: provider-specific secrets/signature checks in each handler.
+- Cron: both cron handlers check a Bearer secret when `CRON_SECRET` is configured; absence skips that check.
+- Polling: secret in query/body, matched against `app_settings.polling_config`.
+- Browser queries rely on database RLS. The privileged server client requires explicit route authorization and ownership checks.
 
----
+## Database map
 
-## 7. Environment Variables Index (`.env.local`)
+Versioned SQL is in [supabase/migrations](supabase/migrations); [scripts/schema.sql](scripts/schema.sql) is a separate schema/setup artifact. Compare them before applying database changes.
 
-| Variable | Description | Required |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL | Yes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Public Anonymous API Key | Yes |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Privileged Service Role Key | Yes |
-| `NEXT_PUBLIC_APP_URL` | Canonical Production Web URL | Optional |
-| `MIKROTIK_IP` | MikroTik Router IP address | Optional (Can configure in Super Admin) |
-| `MIKROTIK_USER` | Router admin username | Optional (Can configure in Super Admin) |
-| `MIKROTIK_PASS` | Router admin password | Optional (Can configure in Super Admin) |
-| `FLUTTERWAVE_PUBLIC_KEY` | Flutterwave Public API Key | Optional (Can configure in Super Admin) |
-| `FLUTTERWAVE_SECRET_KEY` | Flutterwave Secret API Key | Optional (Can configure in Super Admin) |
-| `FLUTTERWAVE_ENCRYPTION_KEY` | Flutterwave Webhook Encryption Key | Optional (Can configure in Super Admin) |
+1. `20260917000001_initial_schema.sql`: `profiles`, `wallets`, `transactions`, `vouchers`, `plans`, `notifications`, `app_settings`, `change_history`, `pending_router_tasks`, `fallback_vouchers`; signup initialization and core RPCs/RLS.
+2. `20260917000002_multi_router_roaming.sql`: `locations`, `routers`, `roaming_sessions`, voucher roaming/accounting additions and RLS.
+3. `20260917000003_phase3_growth.sql`: `voucher_transfers` and growth-related voucher fields/RLS.
+4. `20260917000004_phase4_business.sql`: `referral_rewards`, `reseller_commissions`, `support_tickets`, `push_subscriptions`, profile enhancements, wallet transfer RPC and RLS.
+5. `20260917000005_phase5_scale.sql`: `tenants`, tenant-related schema additions, RLS, and primary-tenant seed.
+6. `20261003000001_monnify_payment_settlement.sql`: server-owned Monnify orders, atomic wallet settlement, voucher leases/fallback recovery, service-only privileges, and idempotent polling task keys. See [Monnify rollout notes](docs/monnify-integration.md); this migration is not yet applied remotely.
 
----
+Key RPCs: `handle_new_user`, `adjust_wallet_balance`, `claim_fallback_voucher`, `expire_outdated_vouchers`, `get_admin_stats`, `transfer_wallet_balance`, `settle_monnify_payment`, `claim_monnify_fallback`, `complete_monnify_voucher`.
 
-## 8. Root Workspace Assets
+`app_settings` holds runtime JSON configuration including branding, router access, hotspot settings, admin credentials, payment gateways, and polling. Do not expose private settings through public/client responses. Keep wallet changes in atomic RPCs, source prices from the catalog, and include RLS with schema additions.
 
-- [`prompt.txt`](file:///c:/Users/DEEPMIND/Desktop/Asuk%20Tech/prompt.txt): Full engineering requirements document defining the three core areas, design rules, REST endpoints, and deliverables.
-- [`sample.html`](file:///c:/Users/DEEPMIND/Desktop/Asuk%20Tech/sample.html): Standalone HTML/CSS reference showcasing the mobile fintech look, color tokens, and layout.
-- [`screenshot 1.jpeg`](file:///c:/Users/DEEPMIND/Desktop/Asuk%20Tech/screenshot%201.jpeg) & [`screenshot 2.jpeg`](file:///c:/Users/DEEPMIND/Desktop/Asuk%20Tech/screenshot%202.jpeg): Visual reference mockups.
-- [`supabase access tokens.txt`](file:///c:/Users/DEEPMIND/Desktop/Asuk%20Tech/supabase%20access%20tokens.txt): Personal access token for Supabase CLI operations.
+## Configuration and operations
+
+Environment variable names referenced by source include:
+
+- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+- Application/admin/cron: `NEXT_PUBLIC_APP_URL`, `JWT_SECRET`, `CRON_SECRET`.
+- Router defaults: `MIKROTIK_IP`, `MIKROTIK_PORT`, `MIKROTIK_USER`, `MIKROTIK_PASS`, `MIKROTIK_PROTOCOL`, `MIKROTIK_USE_SSL`, `MIKROTIK_HOTSPOT_URL`, `MIKROTIK_WIFI_SSID`.
+- Payments: `FLUTTERWAVE_PUBLIC_KEY`, `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_SECRET`, `MONNIFY_API_KEY`, `MONNIFY_SECRET_KEY`, `MONNIFY_CLIENT_SECRET`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, `PAYSTACK_SECRET_KEY`.
+- SMS: `TERMII_API_KEY`. Runtime code also reads `NODE_ENV` and sets `NODE_TLS_REJECT_UNAUTHORIZED` in router operations.
+
+Use `.env.example` as a starting point; runtime settings also come from the database. This list describes source references, not proof that values are configured locally or in production.
+
+`next.config.mjs` defines security/CSP headers and aliases: `/signup` -> `/auth`, `/plans` -> `/packages`, `/passes` -> `/vouchers`, and `/api/mikrotik/test` -> `/api/mikrotik/test-connection`. `/admin` redirects to `/super-admin`.
+
+Current Vercel cron expressions are `0 0 * * *` for voucher expiry and `30 0 * * *` for renewal: daily at 00:00/00:30 UTC (01:00/01:30 WAT). Notes claiming 15-minute/10-minute intervals do not match this checked-in configuration.
+
+## Documentation and validation status
+
+- [docs/production-roadmap/PROGRESS.md](docs/production-roadmap/PROGRESS.md): feature tracker; its body marks all 31 features complete while its opening summary still says phase 4 is active.
+- [docs/multi-router-roaming/README.md](docs/multi-router-roaming/README.md): architecture, database, GPS, experience and implementation notes.
+- [README.md](README.md): setup guidance, but its Next.js 14 and authentication descriptions are outdated.
+- [public/openapi.json](public/openapi.json): currently describes 10 paths, considerably fewer than the 60 implemented route files. [app/docs/page.js](app/docs/page.js) is a custom searchable specification viewer.
+- [test/run-all.js](test/run-all.js): `npm test` passed **31/31** on 2026-10-03. Many checks assert source/file presence or sample arithmetic; some exercise real helper functions. Passing does not verify live payments, applied remote migrations, router behavior, end-to-end flows, or full production readiness.
+- Test execution warned that the package omits module type and that `JWT_SECRET` was absent from the test process. No environment file was loaded by this test command.
+- During the subsequent Monnify fix task, `npm test` passed all 31 existing checks plus 22 Monnify regressions, and the production build passed. Monnify regression tests use actual settlement SQL in isolated PostgreSQL with mocked gateway/router boundaries. Configured Supabase was checked read-only: Monnify is disabled, credentials empty, and the settlement migration absent. See [rollout notes](docs/monnify-integration.md).
+- Existing local modifications include payment/settings/UI/schema/test helpers and an untracked Monnify webhook route. Preserve them when starting new work.
+
+## Page inventory
+
+- `/admin` — [app/admin/page.js](app/admin/page.js)
+- `/analytics` — [app/analytics/page.js](app/analytics/page.js)
+- `/auth` — [app/auth/page.js](app/auth/page.js)
+- `/auth/reset-password` — [app/auth/reset-password/page.js](app/auth/reset-password/page.js)
+- `/docs` — [app/docs/page.js](app/docs/page.js)
+- `/login` — [app/login/page.js](app/login/page.js)
+- `/packages` — [app/packages/page.js](app/packages/page.js)
+- `/` — [app/page.js](app/page.js)
+- `/reseller` — [app/reseller/page.js](app/reseller/page.js)
+- `/reseller/signup` — [app/reseller/signup/page.js](app/reseller/signup/page.js)
+- `/status` — [app/status/page.js](app/status/page.js)
+- `/super-admin` — [app/super-admin/page.js](app/super-admin/page.js)
+- `/vouchers` — [app/vouchers/page.js](app/vouchers/page.js)
+- `/vouchers/status` — [app/vouchers/status/page.js](app/vouchers/status/page.js)
+- `/wallet` — [app/wallet/page.js](app/wallet/page.js)
+
+## API route inventory
+
+Methods below are exported handlers found in source. Authorization and payload contracts are route-specific; follow the linked implementation.
+
+- `GET /api/admin/stats` — [app/api/admin/stats/route.js](app/api/admin/stats/route.js)
+- `GET /api/cron/auto-renew` — [app/api/cron/auto-renew/route.js](app/api/cron/auto-renew/route.js)
+- `GET /api/cron/expire-vouchers` — [app/api/cron/expire-vouchers/route.js](app/api/cron/expire-vouchers/route.js)
+- `GET /api/mikrotik/active-sessions` — [app/api/mikrotik/active-sessions/route.js](app/api/mikrotik/active-sessions/route.js)
+- `POST /api/mikrotik/auto-setup` — [app/api/mikrotik/auto-setup/route.js](app/api/mikrotik/auto-setup/route.js)
+- `POST /api/mikrotik/create-voucher` — [app/api/mikrotik/create-voucher/route.js](app/api/mikrotik/create-voucher/route.js)
+- `GET, POST, DELETE /api/mikrotik/generate-vouchers` — [app/api/mikrotik/generate-vouchers/route.js](app/api/mikrotik/generate-vouchers/route.js)
+- `GET, PUT, PATCH, DELETE /api/mikrotik/hotspot-profiles` — [app/api/mikrotik/hotspot-profiles/route.js](app/api/mikrotik/hotspot-profiles/route.js)
+- `GET, DELETE, PATCH /api/mikrotik/hotspot-users` — [app/api/mikrotik/hotspot-users/route.js](app/api/mikrotik/hotspot-users/route.js)
+- `POST /api/mikrotik/kick-user` — [app/api/mikrotik/kick-user/route.js](app/api/mikrotik/kick-user/route.js)
+- `GET, POST /api/mikrotik/logs` — [app/api/mikrotik/logs/route.js](app/api/mikrotik/logs/route.js)
+- `GET, POST /api/mikrotik/polling` — [app/api/mikrotik/polling/route.js](app/api/mikrotik/polling/route.js)
+- `GET /api/mikrotik/polling/script` — [app/api/mikrotik/polling/script/route.js](app/api/mikrotik/polling/script/route.js)
+- `POST /api/mikrotik/polling/setup` — [app/api/mikrotik/polling/setup/route.js](app/api/mikrotik/polling/setup/route.js)
+- `GET, POST /api/mikrotik/polling/status` — [app/api/mikrotik/polling/status/route.js](app/api/mikrotik/polling/status/route.js)
+- `GET, POST /api/mikrotik/push-login-page` — [app/api/mikrotik/push-login-page/route.js](app/api/mikrotik/push-login-page/route.js)
+- `POST /api/mikrotik/reboot` — [app/api/mikrotik/reboot/route.js](app/api/mikrotik/reboot/route.js)
+- `POST /api/mikrotik/restore-defaults` — [app/api/mikrotik/restore-defaults/route.js](app/api/mikrotik/restore-defaults/route.js)
+- `POST /api/mikrotik/sync-hotspot` — [app/api/mikrotik/sync-hotspot/route.js](app/api/mikrotik/sync-hotspot/route.js)
+- `GET /api/mikrotik/system-health` — [app/api/mikrotik/system-health/route.js](app/api/mikrotik/system-health/route.js)
+- `GET /api/mikrotik/test-connection` — [app/api/mikrotik/test-connection/route.js](app/api/mikrotik/test-connection/route.js)
+- `GET /api/mikrotik/test` — [app/api/mikrotik/test/route.js](app/api/mikrotik/test/route.js)
+- `GET, POST, DELETE /api/mikrotik/walled-garden` — [app/api/mikrotik/walled-garden/route.js](app/api/mikrotik/walled-garden/route.js)
+- `GET, PATCH, POST /api/notifications` — [app/api/notifications/route.js](app/api/notifications/route.js)
+- `POST, DELETE /api/notifications/subscribe` — [app/api/notifications/subscribe/route.js](app/api/notifications/subscribe/route.js)
+- `POST /api/payments/monnify/initialize` — [app/api/payments/monnify/initialize/route.js](app/api/payments/monnify/initialize/route.js)
+- `POST /api/purchase` — [app/api/purchase/route.js](app/api/purchase/route.js)
+- `POST /api/purchase/verify-payment` — [app/api/purchase/verify-payment/route.js](app/api/purchase/verify-payment/route.js)
+- `GET, POST /api/referrals` — [app/api/referrals/route.js](app/api/referrals/route.js)
+- `GET /api/reseller/commissions` — [app/api/reseller/commissions/route.js](app/api/reseller/commissions/route.js)
+- `POST /api/reseller/purchase` — [app/api/reseller/purchase/route.js](app/api/reseller/purchase/route.js)
+- `POST /api/reseller/signup` — [app/api/reseller/signup/route.js](app/api/reseller/signup/route.js)
+- `GET, POST /api/roaming/check-status` — [app/api/roaming/check-status/route.js](app/api/roaming/check-status/route.js)
+- `POST /api/roaming/handoff` — [app/api/roaming/handoff/route.js](app/api/roaming/handoff/route.js)
+- `GET /api/settings/public` — [app/api/settings/public/route.js](app/api/settings/public/route.js)
+- `GET, PUT /api/settings/scheduler` — [app/api/settings/scheduler/route.js](app/api/settings/scheduler/route.js)
+- `GET /api/super-admin/analytics` — [app/api/super-admin/analytics/route.js](app/api/super-admin/analytics/route.js)
+- `POST, DELETE /api/super-admin/auth` — [app/api/super-admin/auth/route.js](app/api/super-admin/auth/route.js)
+- `GET, POST, PATCH /api/super-admin/change-history` — [app/api/super-admin/change-history/route.js](app/api/super-admin/change-history/route.js)
+- `GET, POST, DELETE /api/super-admin/fallback-vouchers` — [app/api/super-admin/fallback-vouchers/route.js](app/api/super-admin/fallback-vouchers/route.js)
+- `POST /api/super-admin/finance/reconcile` — [app/api/super-admin/finance/reconcile/route.js](app/api/super-admin/finance/reconcile/route.js)
+- `GET /api/super-admin/finance` — [app/api/super-admin/finance/route.js](app/api/super-admin/finance/route.js)
+- `GET, POST, PUT, DELETE /api/super-admin/locations` — [app/api/super-admin/locations/route.js](app/api/super-admin/locations/route.js)
+- `GET, POST, DELETE /api/super-admin/plans` — [app/api/super-admin/plans/route.js](app/api/super-admin/plans/route.js)
+- `GET, PATCH /api/super-admin/resellers` — [app/api/super-admin/resellers/route.js](app/api/super-admin/resellers/route.js)
+- `GET, POST, PUT, DELETE /api/super-admin/routers` — [app/api/super-admin/routers/route.js](app/api/super-admin/routers/route.js)
+- `GET /api/super-admin/schema` — [app/api/super-admin/schema/route.js](app/api/super-admin/schema/route.js)
+- `GET, POST /api/super-admin/settings` — [app/api/super-admin/settings/route.js](app/api/super-admin/settings/route.js)
+- `GET /api/super-admin/tenants` — [app/api/super-admin/tenants/route.js](app/api/super-admin/tenants/route.js)
+- `GET, POST, PATCH /api/support/tickets` — [app/api/support/tickets/route.js](app/api/support/tickets/route.js)
+- `GET, POST /api/tenant/config` — [app/api/tenant/config/route.js](app/api/tenant/config/route.js)
+- `POST /api/vouchers/auto-renew` — [app/api/vouchers/auto-renew/route.js](app/api/vouchers/auto-renew/route.js)
+- `POST /api/vouchers/gift` — [app/api/vouchers/gift/route.js](app/api/vouchers/gift/route.js)
+- `GET /api/vouchers/status` — [app/api/vouchers/status/route.js](app/api/vouchers/status/route.js)
+- `GET /api/vouchers/validate` — [app/api/vouchers/validate/route.js](app/api/vouchers/validate/route.js)
+- `POST /api/wallet/topup` — [app/api/wallet/topup/route.js](app/api/wallet/topup/route.js)
+- `POST /api/wallet/transfer` — [app/api/wallet/transfer/route.js](app/api/wallet/transfer/route.js)
+- `POST, GET /api/webhook/flutterwave` — [app/api/webhook/flutterwave/route.js](app/api/webhook/flutterwave/route.js)
+- `POST, GET /api/webhook/monnify` — [app/api/webhook/monnify/route.js](app/api/webhook/monnify/route.js)
+- `POST /api/webhook/paystack` — [app/api/webhook/paystack/route.js](app/api/webhook/paystack/route.js)

@@ -7,6 +7,8 @@ import {
   brandingSchema,
   mikrotikConfigSchema,
   flutterwaveConfigSchema,
+  monnifyConfigSchema,
+  paymentGatewaySchema,
   hotspotSettingsSchema,
 } from '@/lib/schemas';
 
@@ -45,6 +47,7 @@ export async function POST(request) {
     }
 
     const { key, value } = body;
+    let validatedValue = value;
 
     if (!key || typeof key !== 'string' || value === undefined) {
       return NextResponse.json({ error: 'Missing key or value' }, { status: 400 });
@@ -55,6 +58,8 @@ export async function POST(request) {
       branding: brandingSchema,
       mikrotik: mikrotikConfigSchema,
       flutterwave: flutterwaveConfigSchema,
+      monnify: monnifyConfigSchema,
+      payment_gateway: paymentGatewaySchema,
       hotspot_settings: hotspotSettingsSchema,
     };
 
@@ -66,9 +71,10 @@ export async function POST(request) {
           details: parseResult.error.flatten().fieldErrors,
         }, { status: 400 });
       }
+      if (key === 'monnify') validatedValue = parseResult.data;
     }
 
-    let finalValue = value;
+    let finalValue = validatedValue;
     if (key === 'mikrotik' && typeof value === 'object' && value !== null) {
       finalValue = sanitizeMikroTikConfig(value);
     }
@@ -78,6 +84,8 @@ export async function POST(request) {
       mikrotik: 'mikrotik-config',
       branding: 'branding',
       flutterwave: 'payment-gateway',
+      monnify: 'payment-gateway',
+      payment_gateway: 'payment-gateway',
       portal_template: 'login-design',
     };
 
@@ -116,6 +124,10 @@ export async function POST(request) {
         summary = `Updated branding (${finalValue?.app_name || 'App Name'})`;
       } else if (key === 'flutterwave') {
         summary = `Updated Flutterwave payment gateway (${finalValue?.currency || 'NGN'})`;
+      } else if (key === 'monnify') {
+        summary = `Updated Monnify payment gateway (${finalValue?.enabled ? 'enabled' : 'disabled'}, ${finalValue?.is_test ? 'sandbox' : 'production'})`;
+      } else if (key === 'payment_gateway') {
+        summary = `Switched active payment gateway to ${finalValue?.active || 'flutterwave'}`;
       } else if (key === 'portal_template') {
         summary = `Updated portal template: ${finalValue?.templateId || 'default'}`;
       }
@@ -136,4 +148,3 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 }
-

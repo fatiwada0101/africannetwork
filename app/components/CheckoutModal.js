@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { supabase } from '../../lib/supabase';
+import { createPaymentHeaders } from '../../lib/payment-client.js';
 import ReceiptModal from './ReceiptModal';
 import { ReceiptIcon } from './Icons';
 
@@ -117,10 +118,17 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
   const [loadingText, setLoadingText] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [voucherData, setVoucherData] = useState(null);
+  const [pendingMonnifyOrder, setPendingMonnifyOrder] = useState(null);
+  useEffect(() => {
+    if (!plan?.id) { setPendingMonnifyOrder(null); return; }
+    try { setPendingMonnifyOrder(JSON.parse(sessionStorage.getItem(`monnify-order-${plan.id}`) || 'null')); } catch {}
+  }, [plan?.id]);
   const [copied, setCopied] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [autoRenew, setAutoRenew] = useState(false);
   const [flwConfig, setFlwConfig] = useState({ publicKey: '', enabled: false });
+  const [monnifyConfig, setMonnifyConfig] = useState({ apiKey: '', contractCode: '', enabled: false, isTest: true });
+  const [activeGateway, setActiveGateway] = useState('flutterwave');
   // Mutex ref — prevents double-click race condition on pay buttons
   const processingRef = useRef(false);
   const [routerStatus, setRouterStatus] = useState({
@@ -143,10 +151,12 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
       .then(r => r.json())
       .then(d => {
         if (d.flutterwave) setFlwConfig(d.flutterwave);
+        if (d.monnify) setMonnifyConfig(d.monnify);
+        if (d.activeGateway) setActiveGateway(d.activeGateway);
         if (d.mikrotik) {
           setRouterStatus({
             loaded: true,
-            configured: d.mikrotik.configured !== false, // properly map configured flag
+            configured: d.mikrotik.configured !== false,
             online: !!d.mikrotik.online,
             has_fallback_vouchers: !!d.mikrotik.has_fallback_vouchers,
             fallback_counts: d.mikrotik.fallback_counts || {},
@@ -237,7 +247,7 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const headers = { 'Content-Type': 'application/json' };
+      const headers = createPaymentHeaders(data?.session?.access_token);
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -294,11 +304,46 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
     }
   };
 
-  // Pay online via Flutterwave
+  // Pay online via active payment gateway (Flutterwave or Monnify)
+  const recoverMonnifyPurchase = async () => {
+    if (!pendingMonnifyOrder) return;
+    processingRef.current = true;
+    setStep('processing');
+    setLoadingText('Checking your previous payment...');
+    try {
+      const { data } = await supabase.auth.getSession();
+      const headers = { 'Content-Type': 'application/json' };
+      if (data?.session?.access_token) headers.Authorization = `Bearer ${data.session.access_token}`;
+      const response = await fetch('/api/purchase/verify-payment', {
+        method: 'POST', headers,
+        body: JSON.stringify({ gateway: 'monnify', tx_ref: pendingMonnifyOrder.reference,
+          transaction_id: pendingMonnifyOrder.reference, price: pendingMonnifyOrder.amount }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Payment is not ready. Please check again.');
+      setVoucherData({ code: result.voucher_code, plan: result.plan, duration: plan.duration, isFallback: result.is_fallback });
+      try {
+        sessionStorage.removeItem(`monnify-order-${plan.id}`);
+        localStorage.setItem('asuk_active_voucher', JSON.stringify({ code: result.voucher_code, plan: result.plan, duration: plan.duration, purchasedAt: Date.now(), isUsed: false }));
+        window.dispatchEvent(new Event('active_voucher_updated'));
+      } catch {}
+      setPendingMonnifyOrder(null);
+      setStep('success');
+      onSuccess?.();
+    } catch (error) {
+      setErrorMessage(error.message);
+      setStep('error');
+    } finally { processingRef.current = false; }
+  };
+
   const handleCardPayment = async () => {
     // Prevent double-click race condition
     if (processingRef.current) return;
     processingRef.current = true;
+    if (activeGateway === 'monnify' && pendingMonnifyOrder) {
+      await recoverMonnifyPurchase();
+      return;
+    }
 
     if (routerStatus.loaded && !canPurchase) {
       const msg = !isRouterConfigured
@@ -309,12 +354,148 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
       return;
     }
 
-    if (!guestEmail && !user) {
+    if (!user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())) {
       setErrorMessage('Please provide an email address for your payment receipt.');
       processingRef.current = false;
       return;
     }
 
+    // ── MONNIFY CHECKOUT ──
+    if (activeGateway === 'monnify') {
+      if (!monnifyConfig.apiKey || !monnifyConfig.contractCode) {
+        setErrorMessage('Monnify payment gateway is not configured. Please contact support or pay with Wallet.');
+        processingRef.current = false;
+        return;
+      }
+
+      if (typeof window.MonnifySDK === 'undefined') {
+        setErrorMessage('Monnify payment SDK is loading. Please check your internet connection.');
+        processingRef.current = false;
+        return;
+      }
+
+      setStep('processing');
+      setLoadingText('Opening secure Monnify payment...');
+
+      let order;
+      let verificationStarted = false;
+      let paymentHeaders;
+      try {
+        const { data } = await supabase.auth.getSession();
+        paymentHeaders = createPaymentHeaders(data?.session?.access_token);
+        const initRes = await fetch('/api/payments/monnify/initialize', {
+          method: 'POST', headers: paymentHeaders,
+          body: JSON.stringify({ purpose: 'voucher_purchase', plan_id: plan.id, email: user?.email || guestEmail.trim(), phone: guestPhone, auto_renew: autoRenew }),
+        });
+        order = await initRes.json();
+        if (!initRes.ok) throw new Error(order.error || 'Unable to start checkout');
+        setPendingMonnifyOrder(order);
+        try { sessionStorage.setItem(`monnify-order-${plan.id}`, JSON.stringify(order)); } catch {}
+      } catch (error) {
+        setErrorMessage(error.message);
+        setStep('error');
+        processingRef.current = false;
+        return;
+      }
+      const paymentRef = order.reference;
+
+      try { window.MonnifySDK.initialize({
+        amount: order.amount,
+        currency: 'NGN',
+        reference: paymentRef,
+        customerFullName: user?.user_metadata?.full_name || guestEmail?.split('@')[0] || 'Guest',
+        customerEmail: user?.email || guestEmail,
+        apiKey: order.apiKey,
+        contractCode: order.contractCode,
+        paymentDescription: `${plan.name} Wi-Fi Voucher`,
+        metadata: {
+          user_id: user?.id || null,
+          type: 'voucher_purchase',
+          plan_id: plan.id,
+        },
+        onLoadStart: () => { console.log('Monnify SDK loading'); },
+        onLoadComplete: () => { console.log('Monnify SDK ready'); },
+        onComplete: async function (response) {
+          if (verificationStarted) return;
+          verificationStarted = true;
+          if (response.paymentStatus === 'PAID' || response.status === 'SUCCESS') {
+            setLoadingText('Verifying payment & creating voucher on MikroTik router...');
+            try {
+              const verifyRes = await fetch('/api/purchase/verify-payment', {
+                method: 'POST',
+                headers: paymentHeaders,
+                body: JSON.stringify({
+                  transaction_id: response.transactionReference || paymentRef,
+                  tx_ref: paymentRef,
+                  plan_id: plan.id,
+                  plan_name: plan.name,
+                  price: plan.price,
+                  duration: plan.duration,
+                  email: user?.email || guestEmail,
+                  phone: guestPhone,
+                  user_id: user?.id || null,
+                  auto_renew: autoRenew,
+                  gateway: 'monnify',
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (!verifyRes.ok) {
+                throw new Error(verifyData.error || 'Router provisioning failed after payment');
+              }
+
+              const activeV = {
+                code: verifyData.voucher_code,
+                plan: plan.name,
+                duration: plan.duration,
+                purchasedAt: Date.now(),
+                isUsed: false,
+              };
+              if (typeof window !== 'undefined') {
+                try {
+                  localStorage.setItem('asuk_active_voucher', JSON.stringify(activeV));
+                  window.dispatchEvent(new Event('active_voucher_updated'));
+                } catch (e) {}
+              }
+
+              setVoucherData({
+                code: verifyData.voucher_code,
+                plan: plan.name,
+                duration: plan.duration,
+                routerId: verifyData.router_id,
+                isFallback: verifyData.is_fallback,
+              });
+              setPendingMonnifyOrder(null);
+              try { sessionStorage.removeItem(`monnify-order-${plan.id}`); } catch {}
+              setStep('success');
+              processingRef.current = false;
+              if (onSuccess) onSuccess();
+            } catch (err) {
+              setErrorMessage(err.message);
+              setStep('error');
+              processingRef.current = false;
+            }
+          } else {
+            setErrorMessage('Payment was not completed. Please try again.');
+            setStep('error');
+            processingRef.current = false;
+          }
+        },
+        onClose: function () {
+          if (!verificationStarted) {
+            processingRef.current = false;
+            setStep('review');
+          }
+        },
+      }); } catch (error) {
+        setErrorMessage(error.message || 'Unable to open Monnify checkout');
+        setStep('error');
+        processingRef.current = false;
+      }
+      return;
+    }
+
+    // ── FLUTTERWAVE CHECKOUT ──
     if (!flwConfig.publicKey) {
       setErrorMessage('Online card payment gateway is not yet configured. Please Sign In to pay with Wallet balance or configure Flutterwave in Super Admin.');
       processingRef.current = false;
@@ -366,6 +547,7 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
                 phone: guestPhone,
                 user_id: user?.id || null,
                 auto_renew: autoRenew,
+                gateway: 'flutterwave',
               }),
             });
 
@@ -396,21 +578,20 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
               isFallback: verifyData.is_fallback,
             });
             setStep('success');
-            processingRef.current = false; // reset mutex after success
+            processingRef.current = false;
             if (onSuccess) onSuccess();
           } catch (err) {
             setErrorMessage(err.message);
             setStep('error');
-            processingRef.current = false; // allow retry
+            processingRef.current = false;
           }
         } else {
           setErrorMessage('Payment was not completed. Please try again.');
           setStep('error');
-          processingRef.current = false; // allow retry
+          processingRef.current = false;
         }
       },
       onclose: function () {
-        // Reset mutex when Flutterwave popup is closed without payment
         processingRef.current = false;
         setStep('review');
       },
@@ -428,6 +609,20 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
           </div>
           <button className="checkout-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
+
+        {pendingMonnifyOrder && step !== 'processing' && step !== 'success' && (
+          <div className="checkout-security-notice">
+            <div>
+              <p>A previous Monnify payment is saved. Check it before paying again.</p>
+              <button className="btn btn-primary" onClick={recoverMonnifyPurchase}>Check previous payment</button>
+              <button className="btn btn-dark" onClick={() => {
+                setPendingMonnifyOrder(null);
+                try { sessionStorage.removeItem(`monnify-order-${plan.id}`); } catch {}
+                setStep('review');
+              }}>Start a separate purchase</button>
+            </div>
+          </div>
+        )}
 
         {/* ── STEP 1: REVIEW & PAYMENT SELECTION ── */}
         {step === 'review' && (
@@ -571,7 +766,9 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
                     <span className="card-logos">Mastercard • Visa • Verve</span>
                   </div>
                   <p className="method-desc">
-                    Secure 256-bit checkout powered by Flutterwave
+                    {activeGateway === 'monnify'
+                      ? 'Secure checkout powered by Monnify'
+                      : 'Secure 256-bit checkout powered by Flutterwave'}
                   </p>
                 </div>
                 <span className="method-icon">🔒</span>
@@ -680,7 +877,7 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
               <ul>
                 <li>The router could be powered off or unreachable on the local network.</li>
                 <li>Router credentials or IP address might need updating in Super Admin.</li>
-                <li>Your wallet was NOT deducted and no funds were lost.</li>
+                <li>{pendingMonnifyOrder ? 'If payment completed, check the saved payment to recover your voucher.' : 'Check your payment history before retrying a completed payment.'}</li>
               </ul>
             </div>
 
@@ -799,4 +996,3 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
     </div>
   );
 }
-

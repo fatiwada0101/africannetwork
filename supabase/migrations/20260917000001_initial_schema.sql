@@ -487,7 +487,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Default App Branding & Hotspot Settings
 INSERT INTO public.app_settings (key, value)
 VALUES
-  ('branding', '{"app_name": "Asuk Tech", "logo_url": "", "theme": "violet", "app_url": "https://www.asuk.tech"}'::jsonb),
+  ('branding', '{"app_name": "African Network", "logo_url": "", "theme": "violet", "app_url": "https://www.africannetwork.com.ng"}'::jsonb),
   ('hotspot_settings', '{"sharing_enabled": false, "default_devices": 1, "default_upload_speed": "12M", "default_download_speed": "12M", "expiry_mode": "elapsed"}'::jsonb),
-  ('portal_template', '{"templateId": "midnight-glass", "businessName": "Asuk Tech Wi-Fi", "logoUrl": "", "contactFooter": "", "primaryColor": "#7c3aed", "buyUrl": ""}'::jsonb)
+  ('portal_template', '{"templateId": "midnight-glass", "businessName": "African Network Wi-Fi", "logoUrl": "", "contactFooter": "", "primaryColor": "#7c3aed", "buyUrl": ""}'::jsonb)
 ON CONFLICT (key) DO NOTHING;

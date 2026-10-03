@@ -9,7 +9,7 @@ export async function GET() {
       supabaseAdmin
         .from('app_settings')
         .select('key, value')
-        .in('key', ['flutterwave', 'branding', 'mikrotik']),
+        .in('key', ['flutterwave', 'monnify', 'payment_gateway', 'branding', 'mikrotik']),
       checkMikroTikHealth(2500),
       supabaseAdmin
         .from('fallback_vouchers')
@@ -37,6 +37,12 @@ export async function GET() {
 
     let flwPublicKey = process.env.FLUTTERWAVE_PUBLIC_KEY || '';
     let flwEnabled = false;
+    let monnifyApiKey = '';
+    let monnifyContractCode = '';
+    let monnifyEnabled = false;
+    let monnifyIsTest = true;
+    let activeGateway = 'flutterwave'; // default
+
     let branding = {
       app_name: 'African Network',
       logo_url: '',
@@ -52,6 +58,15 @@ export async function GET() {
         if (s.key === 'flutterwave' && s.value) {
           if (s.value.public_key) flwPublicKey = s.value.public_key;
           flwEnabled = !!s.value.enabled;
+        }
+        if (s.key === 'monnify' && s.value) {
+          if (s.value.api_key) monnifyApiKey = s.value.api_key;
+          if (s.value.contract_code) monnifyContractCode = s.value.contract_code;
+          monnifyEnabled = !!s.value.enabled;
+          monnifyIsTest = s.value.is_test !== false; // default to test mode
+        }
+        if (s.key === 'payment_gateway' && s.value) {
+          activeGateway = s.value.active || 'flutterwave';
         }
         if (s.key === 'branding' && s.value) {
           branding = {
@@ -69,9 +84,16 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      activeGateway,
       flutterwave: {
         publicKey: flwPublicKey,
         enabled: flwEnabled,
+      },
+      monnify: {
+        apiKey: monnifyApiKey,
+        contractCode: monnifyContractCode,
+        enabled: monnifyEnabled,
+        isTest: monnifyIsTest,
       },
       branding,
       mikrotik: {
@@ -85,7 +107,9 @@ export async function GET() {
     });
   } catch (error) {
     return NextResponse.json({
+      activeGateway: 'flutterwave',
       flutterwave: { publicKey: '', enabled: false },
+      monnify: { apiKey: '', contractCode: '', enabled: false, isTest: true },
       branding: { app_name: 'African Network', logo_url: '', theme: 'violet' },
       mikrotik: {
         configured: false,

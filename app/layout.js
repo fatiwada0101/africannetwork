@@ -39,6 +39,7 @@ export default function RootLayout({ children }) {
           </BrandingProvider>
         </AuthProvider>
         <Script src="https://checkout.flutterwave.com/v3.js" strategy="lazyOnload" />
+        <Script src="https://sdk.monnify.com/plugin/monnify.js" strategy="lazyOnload" />
         <Script id="sw-register" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
