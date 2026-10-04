@@ -93,6 +93,7 @@ export default function SuperAdminPage() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [token, setToken] = useState('');
+  const [csrfToken, setCsrfToken] = useState('');
 
   // UI
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -310,16 +311,35 @@ export default function SuperAdminPage() {
     return (n / 1073741824).toFixed(2) + ' GB';
   };
 
-  const adminHeaders = useCallback(() => ({
-    'Content-Type': 'application/json',
-    Authorization: `Basic ${token}`,
-  }), [token]);
+  // Helper: read csrf_token cookie value
+  const readCsrfCookie = useCallback(() => {
+    if (typeof document === 'undefined') return '';
+    const match = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrf_token='));
+    if (!match) return '';
+    try { return decodeURIComponent(match.slice('csrf_token='.length)); } catch { return ''; }
+  }, []);
+
+  const adminHeaders = useCallback(() => {
+    const csrf = csrfToken || readCsrfCookie();
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${token}`,
+    };
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    return headers;
+  }, [token, csrfToken, readCsrfCookie]);
 
   // Restore session
   useEffect(() => {
     const saved = sessionStorage.getItem('sa_token');
-    if (saved) { setToken(saved); setAuthed(true); }
-  }, []);
+    if (saved) {
+      setToken(saved);
+      setAuthed(true);
+      // Restore CSRF token from cookie (set during last login)
+      const savedCsrf = readCsrfCookie();
+      if (savedCsrf) setCsrfToken(savedCsrf);
+    }
+  }, [readCsrfCookie]);
 
   // Login
   const handleLogin = async (e) => {
@@ -335,6 +355,11 @@ export default function SuperAdminPage() {
       if (!res.ok) { setAuthError(data.error || 'Invalid credentials'); return; }
       sessionStorage.setItem('sa_token', data.token);
       setToken(data.token);
+      // Store CSRF token returned by the server
+      if (data.csrf_token) {
+        setCsrfToken(data.csrf_token);
+        sessionStorage.setItem('sa_csrf', data.csrf_token);
+      }
       setAuthed(true);
       showToast('Welcome to Super Admin Dashboard');
     } catch { setAuthError('Unable to connect to server'); }
@@ -343,7 +368,11 @@ export default function SuperAdminPage() {
 
   const handleLogout = () => {
     sessionStorage.removeItem('sa_token');
+    sessionStorage.removeItem('sa_csrf');
+    setCsrfToken('');
     setAuthed(false); setToken(''); setUsername(''); setPassword('');
+    // Call logout endpoint to clear server-side cookies
+    fetch('/api/super-admin/auth', { method: 'DELETE' }).catch(() => {});
   };
 
   // ── Data Fetchers ──────────────────────────────────────────

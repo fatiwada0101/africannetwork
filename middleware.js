@@ -24,10 +24,11 @@ const RATE_LIMITS = [
 
 // Routes exempt from CSRF protection
 const CSRF_EXEMPT_PREFIXES = [
-  '/api/webhook',     // Server-to-server (Flutterwave uses verif-hash)
-  '/api/cron',        // Vercel cron (uses CRON_SECRET bearer token)
+  '/api/webhook',             // Server-to-server (Flutterwave uses verif-hash)
+  '/api/cron',                // Vercel cron (uses CRON_SECRET bearer token)
   '/api/mikrotik/polling/route',  // MikroTik polling script (uses polling_secret)
   '/api/settings/public',        // Public read-only settings
+  '/api/super-admin/auth',       // Admin login — no csrf cookie exists yet on first login
 ];
 
 // Methods that don't need CSRF
