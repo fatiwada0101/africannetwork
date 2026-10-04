@@ -3368,6 +3368,22 @@ input, select, textarea {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.sa-nav-menu::-webkit-scrollbar {
+  width: 4px;
+}
+.sa-nav-menu::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 4px;
+}
+.sa-nav-menu::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .sa-nav-button {
@@ -4570,6 +4586,11 @@ input, select, textarea {
     z-index: 99;
     transition: left 0.3s ease;
     box-shadow: 4px 0 24px rgba(0,0,0,0.2);
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* allow inner flex layout to still work */
+    display: flex;
+    flex-direction: column;
   }
 
   .sa-sidebar.open {
