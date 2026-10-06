@@ -56,11 +56,13 @@ import TicketsTab from './components/TicketsTab';
 import ResellersTab from './components/ResellersTab';
 import AnalyticsTab from './components/AnalyticsTab';
 import TenantsTab from './components/TenantsTab';
+import UsersTab from './components/UsersTab';
 
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: TrendingUpIcon },
-  { id: 'finance', label: 'Finance', icon: WalletIcon },
+  { id: 'finance', label: 'Finance & Ledger', icon: WalletIcon },
+  { id: 'users', label: 'Customers & Wallets', icon: UsersIcon },
   { id: 'analytics', label: 'Analytics & BI', icon: TrendingUpIcon },
   { id: 'sessions', label: 'Live Sessions', icon: WifiIcon },
   { id: 'vouchers', label: 'Voucher Factory', icon: TicketIcon },
@@ -2034,6 +2036,11 @@ export default function SuperAdminPage() {
           <div className="sa-tab-body">
             <FinanceTab adminHeaders={adminHeaders} formatPrice={formatPrice} showToast={showToast} />
           </div>
+        )}
+
+        {/* === TAB: CUSTOMERS & WALLETS === */}
+        {activeTab === 'users' && (
+          <UsersTab adminHeaders={adminHeaders} formatPrice={formatPrice} showToast={showToast} />
         )}
 
         {/* ═══ TAB: LIVE SESSIONS ═══ */}

@@ -6,6 +6,7 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
   const [financeData, setFinanceData] = useState(null);
   const [finLoading, setFinLoading] = useState(false);
   const [dateFilter, setDateFilter] = useState('this_month');
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'deposit' | 'purchase' | 'transfer'
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
@@ -83,6 +84,7 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
         end_date: end,
         page: String(page),
         limit: String(limit),
+        type: typeFilter,
       });
       if (search.trim()) params.append('search', search.trim());
 
@@ -91,7 +93,7 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
         signal: controller.signal,
       });
 
-      if (currentSeq !== seqRef.current) return; // Discard response from outdated request
+      if (currentSeq !== seqRef.current) return;
 
       if (res.ok) {
         setFinanceData(await res.json());
@@ -99,14 +101,14 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
         showToast('Failed to load finance data');
       }
     } catch (err) {
-      if (err.name === 'AbortError') return; // Clean cancellation
+      if (err.name === 'AbortError') return;
       showToast('Network error');
     } finally {
       if (currentSeq === seqRef.current) {
         setFinLoading(false);
       }
     }
-  }, [dateFilter, getDateRange, page, limit, search, adminHeaders, showToast]);
+  }, [dateFilter, getDateRange, page, limit, search, typeFilter, adminHeaders, showToast]);
 
   useEffect(() => { fetchFinanceData(); }, [fetchFinanceData]);
 
@@ -116,49 +118,46 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
       const jspdfModule = await import('jspdf');
       const jsPDF = jspdfModule.jsPDF || jspdfModule.default?.jsPDF || jspdfModule.default;
       await import('jspdf-autotable');
-      const doc = new jsPDF();
+      const doc = new jsPDF('landscape');
       const { start, end } = getDateRange(dateFilter);
 
-      // Fetch all records for export across date range
-      const res = await fetch(`/api/super-admin/finance?start_date=${start}&end_date=${end}&export_all=true`, {
+      const res = await fetch(`/api/super-admin/finance?start_date=${start}&end_date=${end}&type=${typeFilter}&export_all=true`, {
         headers: adminHeaders(),
       });
       const dataToExport = res.ok ? await res.json() : financeData;
       if (!dataToExport) return;
 
       doc.setFontSize(18);
-      doc.text('Finance Report', 14, 22);
+      doc.text('Financial Ledger & Revenue Statement', 14, 20);
       doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text(`Period: ${start} to ${end}`, 14, 30);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 36);
+      doc.text(`Period: ${start} to ${end}  |  Type: ${typeFilter.toUpperCase()}`, 14, 28);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 34);
 
       // Summary
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setTextColor(0);
-      doc.text(`Total Revenue: ${formatPrice(dataToExport.summary?.totalRevenue || 0)}`, 14, 48);
-      doc.text(`Total Sales: ${dataToExport.summary?.totalSales || 0}`, 14, 56);
-      doc.text(`Avg Order: ${formatPrice(dataToExport.summary?.avgOrderValue || 0)}`, 14, 64);
-      if (dataToExport.summary?.topPlan) {
-        doc.text(`Top Plan: ${dataToExport.summary.topPlan.name} (${dataToExport.summary.topPlan.count} sold)`, 14, 72);
-      }
+      doc.text(`Total Inflow: ${formatPrice(dataToExport.summary?.totalRevenue || 0)}  |  Total Deposits: ${formatPrice(dataToExport.summary?.totalDeposits || 0)}  |  Pass Sales: ${formatPrice(dataToExport.summary?.totalPassSales || 0)}  |  Wallet Liability: ${formatPrice(dataToExport.summary?.walletLiability || 0)}`, 14, 44);
 
       // Transaction table
       const rows = (dataToExport.transactions || []).map(t => [
-        new Date(t.date).toLocaleDateString(),
-        t.voucher_code,
+        new Date(t.date).toLocaleString(),
+        t.type_label,
+        t.customer_name || 'Guest',
         t.plan || '-',
+        t.voucher_code || '-',
+        t.payment_method?.toUpperCase() || '-',
         formatPrice(t.amount),
-        t.used ? 'Used' : 'Active',
+        t.status?.toUpperCase() || 'SUCCESS',
       ]);
 
       doc.autoTable({
-        startY: 82,
-        head: [['Date', 'Voucher', 'Plan', 'Amount', 'Status']],
+        startY: 50,
+        head: [['Date & Time', 'Type', 'Customer', 'Plan / Purpose', 'Voucher Code', 'Method', 'Amount', 'Status']],
         body: rows,
         theme: 'striped',
         headStyles: { fillColor: [114, 87, 255] },
-        styles: { fontSize: 9 },
+        styles: { fontSize: 8 },
       });
 
       doc.save(`finance_report_${start}_to_${end}.pdf`);
@@ -177,7 +176,7 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
       const XLSX = await import('xlsx');
       const { start, end } = getDateRange(dateFilter);
 
-      const res = await fetch(`/api/super-admin/finance?start_date=${start}&end_date=${end}&export_all=true`, {
+      const res = await fetch(`/api/super-admin/finance?start_date=${start}&end_date=${end}&type=${typeFilter}&export_all=true`, {
         headers: adminHeaders(),
       });
       const dataToExport = res.ok ? await res.json() : financeData;
@@ -185,37 +184,38 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
 
       // Summary sheet
       const summaryData = [
-        ['Finance Report'],
+        ['Financial Ledger Report'],
         [`Period: ${start} to ${end}`],
+        [`Filter: ${typeFilter}`],
         [],
         ['Metric', 'Value'],
-        ['Total Revenue', dataToExport.summary?.totalRevenue || 0],
-        ['Total Sales', dataToExport.summary?.totalSales || 0],
-        ['Avg Order Value', dataToExport.summary?.avgOrderValue || 0],
-        ['Top Plan', dataToExport.summary?.topPlan?.name || '-'],
+        ['Total Cash Inflow (₦)', dataToExport.summary?.totalRevenue || 0],
+        ['Total Wallet Deposits (₦)', dataToExport.summary?.totalDeposits || 0],
+        ['Total Pass Sales (₦)', dataToExport.summary?.totalPassSales || 0],
+        ['Customer Wallet Liability (₦)', dataToExport.summary?.walletLiability || 0],
+        ['Total Transactions', dataToExport.summary?.totalTransactions || 0],
       ];
       const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
 
       // Transactions sheet
-      const txHeaders = ['Date', 'Voucher Code', 'Plan', 'Amount (₦)', 'Status'];
+      const txHeaders = ['Date', 'Type', 'Customer Name', 'Customer Phone', 'Plan / Purpose', 'Voucher Code', 'Method', 'Reference', 'Amount (₦)', 'Status'];
       const txRows = (dataToExport.transactions || []).map(t => [
-        new Date(t.date).toLocaleDateString(),
-        t.voucher_code,
+        new Date(t.date).toLocaleString(),
+        t.type_label,
+        t.customer_name || 'Guest',
+        t.customer_phone || '-',
         t.plan || '-',
+        t.voucher_code || '-',
+        t.payment_method || '-',
+        t.ref || '-',
         t.amount,
-        t.used ? 'Used' : 'Active',
+        t.status || 'successful',
       ]);
       const ws2 = XLSX.utils.aoa_to_sheet([txHeaders, ...txRows]);
 
-      // Daily breakdown sheet
-      const dailyHeaders = ['Date', 'Sales Count', 'Revenue (₦)'];
-      const dailyRows = (dataToExport.dailyBreakdown || []).map(d => [d.date, d.count, d.revenue]);
-      const ws3 = XLSX.utils.aoa_to_sheet([dailyHeaders, ...dailyRows]);
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
-      XLSX.utils.book_append_sheet(wb, ws2, 'Transactions');
-      XLSX.utils.book_append_sheet(wb, ws3, 'Daily Breakdown');
+      XLSX.utils.book_append_sheet(wb, ws2, 'Ledger Transactions');
 
       XLSX.writeFile(wb, `finance_report_${start}_to_${end}.xlsx`);
       showToast('✅ Full Excel exported!');
@@ -237,14 +237,14 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
 
   return (
     <>
-      {/* Date Filters */}
+      {/* Date & Type Filters */}
       <div className="sa-glass-card">
         <div className="sa-card-header">
           <div>
-            <h3 className="sa-card-title">Financial Reports</h3>
-            <p className="sa-card-sub">Revenue analytics, sales reports & exports</p>
+            <h3 className="sa-card-title">Financial Ledger & Revenue</h3>
+            <p className="sa-card-sub">Deposits, voucher purchases, customer wallet balances & audit</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="sa-btn-primary" onClick={exportPDF} disabled={!financeData || finLoading || exporting}
               style={{ fontSize: 13, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
               {exporting ? '⏳ Exporting...' : '📄 Export PDF'}
@@ -260,7 +260,9 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        {/* Date Filter Pills */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <span style={{ fontSize: 12, color: '#8E8E93', alignSelf: 'center', marginRight: 4 }}>Period:</span>
           {[
             { id: 'today', label: 'Today' },
             { id: 'this_week', label: 'This Week' },
@@ -271,11 +273,32 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
             <button key={f.id}
               className={`sa-btn-outline ${dateFilter === f.id ? 'sa-filter-active' : ''}`}
               onClick={() => { setDateFilter(f.id); setPage(1); }}
-              style={{ fontSize: 12, padding: '6px 14px', borderRadius: 20,
-                background: dateFilter === f.id ? 'var(--primary-color, #34A853)' : 'transparent',
+              style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20,
+                background: dateFilter === f.id ? 'var(--primary-color, #7257FF)' : 'transparent',
                 color: dateFilter === f.id ? '#fff' : 'inherit',
-                borderColor: dateFilter === f.id ? 'var(--primary-color, #34A853)' : undefined }}>
+                borderColor: dateFilter === f.id ? 'var(--primary-color, #7257FF)' : 'rgba(255,255,255,0.12)' }}>
               {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Transaction Type Filter Pills */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <span style={{ fontSize: 12, color: '#8E8E93', alignSelf: 'center', marginRight: 4 }}>Filter:</span>
+          {[
+            { id: 'all', label: '⚡ All Activity' },
+            { id: 'deposit', label: '💰 Wallet Deposits' },
+            { id: 'purchase', label: '🎟️ Pass Purchases' },
+            { id: 'transfer', label: '⇄ Wallet Transfers' },
+          ].map(t => (
+            <button key={t.id}
+              className={`sa-btn-outline ${typeFilter === t.id ? 'sa-filter-active' : ''}`}
+              onClick={() => { setTypeFilter(t.id); setPage(1); }}
+              style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20,
+                background: typeFilter === t.id ? '#10b981' : 'transparent',
+                color: typeFilter === t.id ? '#fff' : 'inherit',
+                borderColor: typeFilter === t.id ? '#10b981' : 'rgba(255,255,255,0.12)' }}>
+              {t.label}
             </button>
           ))}
         </div>
@@ -300,29 +323,29 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
 
       {/* Summary KPIs */}
       {finLoading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#8E8E93' }}>Loading finance data...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#8E8E93' }}>Loading financial ledger...</div>
       ) : (
         <>
           <div className="sa-kpi-grid" style={{ marginTop: 20 }}>
             <div className="sa-kpi-card sa-kpi-hero">
-              <div className="sa-kpi-top"><span className="sa-kpi-label">Revenue</span></div>
+              <div className="sa-kpi-top"><span className="sa-kpi-label">Total Cash Inflow</span></div>
               <div className="sa-kpi-value">{formatPrice(summary.totalRevenue || 0)}</div>
-              <div className="sa-kpi-footer">From paid voucher purchases</div>
+              <div className="sa-kpi-footer">Deposits & direct card payments</div>
             </div>
             <div className="sa-kpi-card">
-              <div className="sa-kpi-top"><span className="sa-kpi-label">Sales</span></div>
-              <div className="sa-kpi-value">{summary.totalSales || 0}</div>
-              <div className="sa-kpi-footer">Vouchers sold in period</div>
+              <div className="sa-kpi-top"><span className="sa-kpi-label">Wallet Deposits</span></div>
+              <div className="sa-kpi-value sa-color-green">{formatPrice(summary.totalDeposits || 0)}</div>
+              <div className="sa-kpi-footer">{summary.depositCount || 0} top-up transactions</div>
             </div>
             <div className="sa-kpi-card">
-              <div className="sa-kpi-top"><span className="sa-kpi-label">Avg Order</span></div>
-              <div className="sa-kpi-value">{formatPrice(summary.avgOrderValue || 0)}</div>
-              <div className="sa-kpi-footer">Average purchase value</div>
+              <div className="sa-kpi-top"><span className="sa-kpi-label">Wi-Fi Pass Sales</span></div>
+              <div className="sa-kpi-value" style={{ color: '#7257FF' }}>{formatPrice(summary.totalPassSales || 0)}</div>
+              <div className="sa-kpi-footer">{summary.totalSales || 0} passes sold</div>
             </div>
             <div className="sa-kpi-card">
-              <div className="sa-kpi-top"><span className="sa-kpi-label">Top Plan</span></div>
-              <div className="sa-kpi-value" style={{ fontSize: 18 }}>{summary.topPlan?.name || '—'}</div>
-              <div className="sa-kpi-footer">{summary.topPlan ? `${summary.topPlan.count} sold • ${formatPrice(summary.topPlan.revenue)}` : 'No sales yet'}</div>
+              <div className="sa-kpi-top"><span className="sa-kpi-label">Customer Wallets</span></div>
+              <div className="sa-kpi-value" style={{ color: '#F59E0B' }}>{formatPrice(summary.walletLiability || 0)}</div>
+              <div className="sa-kpi-footer">Unspent customer balance held</div>
             </div>
           </div>
 
@@ -330,15 +353,15 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
           <div className="sa-glass-card" style={{ marginTop: 20 }}>
             <div className="sa-card-header" style={{ flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h3 className="sa-card-title">Transactions Ledger</h3>
+                <h3 className="sa-card-title">Financial Activity Ledger</h3>
                 <p className="sa-card-sub">
-                  Showing {fromRecord}–{toRecord} of {totalMatching} paid purchases
+                  Showing {fromRecord}–{toRecord} of {totalMatching} records
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                 <input
                   type="text"
-                  placeholder="Search voucher or plan..."
+                  placeholder="Search customer, ref, plan..."
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
                   style={{
@@ -348,7 +371,7 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
                     borderRadius: 8,
                     padding: '6px 12px',
                     fontSize: '0.85rem',
-                    minWidth: 180,
+                    minWidth: 220,
                   }}
                 />
                 <select
@@ -373,25 +396,68 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
 
             {transactions.length === 0 ? (
               <div style={{ padding: 32, textAlign: 'center', color: '#8E8E93' }}>
-                {finLoading ? 'Loading transactions...' : 'No transactions in this period'}
+                {finLoading ? 'Loading activity...' : 'No transactions recorded in this period'}
               </div>
             ) : (
               <>
                 <div className="sa-table-responsive">
                   <table className="sa-modern-table">
                     <thead><tr>
-                      <th>Date</th><th>Voucher</th><th>Plan</th><th>Amount</th><th>Status</th>
+                      <th>Date & Time</th>
+                      <th>Type</th>
+                      <th>Customer</th>
+                      <th>Plan / Purpose</th>
+                      <th>Method / Ref</th>
+                      <th>Amount</th>
+                      <th>Status</th>
                     </tr></thead>
                     <tbody>
                       {transactions.map(t => (
                         <tr key={t.id}>
-                          <td>{new Date(t.date).toLocaleDateString()}</td>
-                          <td><code style={{ fontSize: 12 }}>{t.voucher_code}</code></td>
-                          <td>{t.plan || '—'}</td>
-                          <td><strong>{formatPrice(t.amount)}</strong></td>
+                          <td style={{ fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                            {new Date(t.date).toLocaleDateString()} <span style={{ color: '#8E8E93' }}>{new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </td>
                           <td>
-                            <span className={`sa-badge ${t.used ? 'sa-badge-muted' : 'sa-badge-success'}`}>
-                              {t.used ? 'Used' : 'Active'}
+                            <span className="sa-badge" style={{
+                              background: t.type === 'wallet_topup' ? 'rgba(16, 185, 129, 0.15)' : t.type === 'voucher_purchase' ? 'rgba(114, 87, 255, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                              color: t.type === 'wallet_topup' ? '#10B981' : t.type === 'voucher_purchase' ? '#C4B5FD' : '#60A5FA',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                            }}>
+                              {t.type_label}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{t.customer_name}</strong>
+                            {t.customer_phone && <div style={{ fontSize: '0.75rem', color: '#8E8E93' }}>{t.customer_phone}</div>}
+                          </td>
+                          <td>
+                            <span>{t.plan || '—'}</span>
+                            {t.voucher_code && t.voucher_code !== '-' && (
+                              <div style={{ fontSize: '0.75rem', marginTop: 2 }}>
+                                Code: <code style={{ color: '#C4B5FD' }}>{t.voucher_code}</code>
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <span style={{ textTransform: 'capitalize', fontSize: '0.82rem' }}>{t.payment_method}</span>
+                            {t.ref && t.ref !== '-' && (
+                              <div style={{ fontSize: '0.7rem', color: '#8E8E93', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.ref}>
+                                {t.ref}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <strong style={{
+                              color: t.type === 'wallet_topup' ? '#10B981' : '#fff',
+                              fontSize: '0.95rem'
+                            }}>
+                              {t.type === 'wallet_topup' ? '+' : ''}{formatPrice(t.amount)}
+                            </strong>
+                          </td>
+                          <td>
+                            <span className={`sa-badge ${t.status === 'successful' ? 'sa-badge-success' : 'sa-badge-muted'}`}>
+                              {t.status}
                             </span>
                           </td>
                         </tr>
@@ -411,7 +477,7 @@ export default function FinanceTab({ adminHeaders, formatPrice, showToast }) {
                   borderTop: '1px solid rgba(255,255,255,0.08)'
                 }}>
                   <span style={{ fontSize: '0.85rem', color: '#8E8E93' }}>
-                    Showing <strong>{fromRecord}</strong> to <strong>{toRecord}</strong> of <strong>{totalMatching}</strong> transactions (Page {page} of {totalPages})
+                    Showing <strong>{fromRecord}</strong> to <strong>{toRecord}</strong> of <strong>{totalMatching}</strong> records (Page {page} of {totalPages})
                   </span>
 
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

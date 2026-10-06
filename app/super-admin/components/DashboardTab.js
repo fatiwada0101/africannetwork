@@ -33,7 +33,7 @@ export default function DashboardTab({
                   )}
                 </div>
                 <div className="sa-kpi-value">{formatPrice(stats.revenue)}</div>
-                <div className="sa-kpi-footer">From provisioned Wi-Fi vouchers</div>
+                <div className="sa-kpi-footer">Passes: {formatPrice(stats.revenue)} • Deposits: {formatPrice(stats.totalDeposits || 0)}</div>
               </div>
               <div className="sa-kpi-card">
                 <div className="sa-kpi-top">

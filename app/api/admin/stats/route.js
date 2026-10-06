@@ -26,6 +26,7 @@ export async function GET(request) {
       revenue:          Number(stats.revenue || 0),
       vouchers:         Number(stats.vouchers || 0),
       totalGenerated:   Number(stats.totalGenerated || 0),
+      totalDeposits:    Number(stats.totalDeposits || 0),
       walletLiability:  Number(stats.walletLiability || 0),
       planDistribution: stats.planDistribution || [],
       dailySales:       (stats.dailySales || []).map(d => ({
