@@ -247,7 +247,7 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-      const headers = createPaymentHeaders(data?.session?.access_token);
+      const headers = createPaymentHeaders(token);
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -265,16 +265,16 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
         }),
       });
 
-      const data = await res.json();
+      const resData = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to create voucher on router');
+        throw new Error(resData.error || 'Failed to create voucher on router');
       }
 
       await refreshWallet();
 
       const activeV = {
-        code: data.voucher_code,
+        code: resData.voucher_code,
         plan: plan.name,
         duration: plan.duration,
         purchasedAt: Date.now(),
@@ -288,11 +288,11 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
       }
 
       setVoucherData({
-        code: data.voucher_code,
+        code: resData.voucher_code,
         plan: plan.name,
         duration: plan.duration,
-        routerId: data.router_id,
-        isFallback: data.is_fallback,
+        routerId: resData.router_id,
+        isFallback: resData.is_fallback,
       });
       setStep('success');
       processingRef.current = false; // reset mutex after success
