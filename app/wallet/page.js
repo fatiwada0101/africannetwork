@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
@@ -29,7 +29,7 @@ import {
 
 const PRESET_AMOUNTS = ['500', '1000', '2000', '5000', '10000'];
 
-export default function WalletPage() {
+function WalletContent() {
   const router = useRouter();
   const { user, profile, wallet, refreshWallet, loading: authLoading } = useAuth();
   const { appName } = useBranding();
@@ -1183,5 +1183,17 @@ export default function WalletPage() {
       <BottomNav />
       {toast && <div className="toast show">{toast}</div>}
     </div>
+  );
+}
+
+export default function WalletPage() {
+  return (
+    <Suspense fallback={
+      <div className="app-shell" style={{ textAlign: 'center', padding: '100px 20px', color: '#8E8E93' }}>
+        Loading Wallet...
+      </div>
+    }>
+      <WalletContent />
+    </Suspense>
   );
 }
