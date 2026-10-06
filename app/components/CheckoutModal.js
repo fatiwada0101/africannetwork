@@ -519,6 +519,9 @@ export default function CheckoutModal({ isOpen, onClose, plan, onSuccess }) {
       amount: price,
       currency: 'NGN',
       payment_options: 'card,banktransfer,ussd',
+      // redirect_url: Flutterwave redirects here on mobile/USSD instead of firing JS callback.
+      // /vouchers/status shows the user their latest voucher after redirect.
+      redirect_url: `${window.location.origin}/vouchers/status?payment=success`,
       customer: {
         email: user?.email || guestEmail,
         phone_number: guestPhone || '08000000000',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
 import { supabase } from '../../lib/supabase';
@@ -40,6 +40,19 @@ export default function WalletPage() {
     try { setPendingMonnifyTopup(user?.id ? JSON.parse(sessionStorage.getItem(`monnify-topup-${user.id}`) || 'null') : null); } catch {}
   }, [user?.id]);
   const depositFormRef = useRef(null);
+  const searchParams = useSearchParams();
+
+  // Handle redirect back from Flutterwave (mobile / USSD payments don't fire the JS callback)
+  useEffect(() => {
+    if (searchParams?.get('deposit') === 'success' && user) {
+      showToast('✅ Payment received! Your balance will update shortly.');
+      refreshWallet();
+      fetchTransactions();
+      // Clean the URL without reloading the page
+      window.history.replaceState({}, '', '/wallet');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user]);
 
   const [activeSegment, setActiveSegment] = useState('deposits'); // 'deposits' | 'vouchers'
   const [amountVal, setAmountVal] = useState('2000');
@@ -315,6 +328,9 @@ export default function WalletPage() {
       amount: depositNum,
       currency: 'NGN',
       payment_options: 'card,banktransfer,ussd',
+      // redirect_url: Flutterwave redirects here on mobile/USSD instead of firing the JS callback.
+      // The wallet page re-fetches the balance on mount, so the deposit will reflect automatically.
+      redirect_url: `${window.location.origin}/wallet?deposit=success`,
       customer: {
         email: user?.email || 'customer@africannetwork.com',
         phone_number: user?.user_metadata?.phone || '08000000000',
