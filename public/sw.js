@@ -47,12 +47,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Next.js static assets and fonts: Cache-first
+  // Skip third-party fonts entirely — let the browser handle them.
+  // The SW fetch context has stricter CSP enforcement and these requests
+  // get blocked with "Refused to connect" errors from the SW.
   if (
-    request.url.includes('/_next/static/') ||
     request.url.includes('fonts.googleapis.com') ||
     request.url.includes('fonts.gstatic.com')
   ) {
+    return;
+  }
+
+  // Next.js static assets: Cache-first
+  if (request.url.includes('/_next/static/')) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;

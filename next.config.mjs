@@ -48,12 +48,15 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' checkout.flutterwave.com https://sdk.monnify.com",
+              // Flutterwave loads scripts from both checkout.flutterwave.com and checkout-v3.flutterwave.com
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' checkout.flutterwave.com https://checkout-v3.flutterwave.com https://sdk.monnify.com",
               "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
-              "font-src 'self' fonts.gstatic.com",
+              "font-src 'self' fonts.gstatic.com data:",
               "img-src 'self' data: blob: *.supabase.co",
-              "connect-src 'self' *.supabase.co wss://*.supabase.co api.flutterwave.com checkout.flutterwave.com https://sdk.monnify.com https://sandbox.sdk.monnify.com",
-              "frame-src checkout.flutterwave.com https://sdk.monnify.com https://sandbox.sdk.monnify.com",
+              // api.ravepay.co is used by Flutterwave v3.js for upgrade/version checks
+              "connect-src 'self' *.supabase.co wss://*.supabase.co api.flutterwave.com checkout.flutterwave.com https://checkout-v3.flutterwave.com https://api.ravepay.co https://sdk.monnify.com https://sandbox.sdk.monnify.com fonts.googleapis.com fonts.gstatic.com",
+              // checkout-v3.flutterwave.com is the actual iframe origin Flutterwave uses
+              "frame-src checkout.flutterwave.com https://checkout-v3.flutterwave.com https://sdk.monnify.com https://sandbox.sdk.monnify.com",
               "object-src 'none'",
               "base-uri 'self'",
             ].join('; '),
