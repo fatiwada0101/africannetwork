@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { TicketIcon, SearchIcon, PrinterIcon, DownloadIcon } from '../../components/Icons';
+import VoucherPrintModal from './VoucherPrintModal';
+import { CARD_STYLES, CARDS_PER_PAGE_PRESETS } from '@/lib/voucherCardGenerator';
 
 export default function VoucherFactoryTab({
   plans,
@@ -42,11 +44,12 @@ export default function VoucherFactoryTab({
   const [voucherPageSize, setVoucherPageSize] = useState(20);
   const [printScope, setPrintScope] = useState('all');
 
-  // Voucher Card Customization
+  // Voucher Card Customization & Modal
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [cardOptions, setCardOptions] = useState({
     style: 'branded', cols: 2, rows: 4,
     showSsid: true, showPrice: true, showExpiry: true,
-    showDataLimit: true, showSerial: true,
+    showDataLimit: true, showSerial: true, showCutGuides: true,
   });
   const [cardExporting, setCardExporting] = useState(false);
   const [copiedPin, setCopiedPin] = useState('');
@@ -623,9 +626,24 @@ export default function VoucherFactoryTab({
                       </div>
                       <div className="sa-header-actions">
                         {processed.length > 0 && (
-                          <button className="sa-btn-pill-small" onClick={copyAllVouchers}>
-                            📋 Copy All ({processed.length})
-                          </button>
+                          <>
+                            <button
+                              className="sa-btn-pill-small"
+                              style={{
+                                background: 'linear-gradient(135deg, rgba(114, 87, 255, 0.28), rgba(114, 87, 255, 0.12))',
+                                color: '#C4B5FD',
+                                borderColor: 'rgba(114, 87, 255, 0.4)',
+                                fontWeight: 700,
+                              }}
+                              onClick={() => setShowPrintModal(true)}
+                              title="Choose card layout, cards per A4 page, and visual design before printing"
+                            >
+                              🖨️ Customize & Print ({processed.length})
+                            </button>
+                            <button className="sa-btn-pill-small" onClick={copyAllVouchers}>
+                              📋 Copy All ({processed.length})
+                            </button>
+                          </>
                         )}
                         <button
                           className="sa-btn-pill-small"
@@ -850,41 +868,71 @@ export default function VoucherFactoryTab({
                     )}
 
                     {/* ── Card Customization & Multi-Format Export ── */}
-                    <div className="sa-glass-card" style={{ marginTop: 16, background: 'rgba(114, 87, 255, 0.04)', border: '1px solid rgba(114, 87, 255, 0.15)' }}>
+                    <div className="sa-glass-card" style={{ marginTop: 16, background: 'rgba(114, 87, 255, 0.04)', border: '1px solid rgba(114, 87, 255, 0.2)' }}>
                       <div className="sa-card-header">
                         <div>
                           <h3 className="sa-card-title">🎨 Print & Download Card Studio</h3>
-                          <p className="sa-card-sub">Export batch as beautiful printable cards, PDF sheets, images, or raw Excel/CSV</p>
+                          <p className="sa-card-sub">Export batch as customizable printable cards (up to 24 per A4 page), PDF sheets, images, or raw CSV</p>
+                        </div>
+                        <div className="sa-header-actions">
+                          <button
+                            className="sa-btn-primary"
+                            style={{ padding: '8px 16px', fontSize: 13 }}
+                            onClick={() => setShowPrintModal(true)}
+                            disabled={exportCount === 0}
+                          >
+                            <PrinterIcon size={14} /> 🖨️ Customize & Print ({exportCount})
+                          </button>
                         </div>
                       </div>
 
                       <div className="sa-form-grid-3">
                         <div className="sa-field-box">
-                          <label>Card Style</label>
+                          <label>Card Visual Design</label>
                           <select value={cardOptions.style} onChange={e => setCardOptions({ ...cardOptions, style: e.target.value })}>
-                            <option value="minimal">Minimal (Clean Light)</option>
-                            <option value="branded">Branded (Purple Royal)</option>
-                            <option value="premium">Premium (Gold & Dark)</option>
+                            {Object.values(CARD_STYLES).map(s => (
+                              <option key={s.id} value={s.id}>{s.name} ({s.tag})</option>
+                            ))}
                           </select>
                         </div>
                         <div className="sa-field-box">
-                          <label>Cards Per Row</label>
-                          <select value={cardOptions.cols} onChange={e => setCardOptions({ ...cardOptions, cols: Number(e.target.value) })}>
-                            <option value={2}>2 Cards</option>
-                            <option value={3}>3 Cards</option>
+                          <label>Cards Per A4 Page</label>
+                          <select
+                            value={`${cardOptions.cols}x${cardOptions.rows}`}
+                            onChange={e => {
+                              const [c, r] = e.target.value.split('x').map(Number);
+                              setCardOptions({ ...cardOptions, cols: c, rows: r });
+                            }}
+                          >
+                            {CARDS_PER_PAGE_PRESETS.map(p => (
+                              <option key={p.count} value={`${p.cols}x${p.rows}`}>
+                                {p.label} — {p.subtitle}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div className="sa-field-box">
-                          <label>Rows Per Page</label>
-                          <select value={cardOptions.rows} onChange={e => setCardOptions({ ...cardOptions, rows: Number(e.target.value) })}>
-                            <option value={3}>3 Rows</option>
-                            <option value={4}>4 Rows (Default)</option>
-                            <option value={5}>5 Rows</option>
-                          </select>
+                          <label>Page Density & Yield</label>
+                          <div style={{
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: 8,
+                            padding: '9px 12px',
+                            fontSize: 12,
+                            color: '#C4B5FD',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}>
+                            <span><strong>{cardOptions.cols * cardOptions.rows} cards</strong>/sheet</span>
+                            <span style={{ color: '#81C995', fontWeight: 700 }}>
+                              {Math.ceil(exportCount / (cardOptions.cols * cardOptions.rows))} A4 sheet{Math.ceil(exportCount / (cardOptions.cols * cardOptions.rows)) > 1 ? 's' : ''}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 10, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 12, alignItems: 'center' }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: '#C4B5FD' }}>Export Scope:</span>
                           <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#fff' }}>
@@ -930,15 +978,22 @@ export default function VoucherFactoryTab({
                             <input type="checkbox" checked={cardOptions.showSerial} onChange={e => setCardOptions({ ...cardOptions, showSerial: e.target.checked })} />
                             <span>Show Serial #</span>
                           </label>
+                          <label className="sa-checkbox-label" style={{ fontSize: 12 }}>
+                            <input type="checkbox" checked={cardOptions.showCutGuides} onChange={e => setCardOptions({ ...cardOptions, showCutGuides: e.target.checked })} />
+                            <span>✂ Cut Guides</span>
+                          </label>
                         </div>
                       </div>
 
                       <div className="sa-plan-form-footer" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 14 }}>
-                        <button className="sa-btn-primary" onClick={handlePrintCards} disabled={cardExporting || exportCount === 0}>
-                          <PrinterIcon size={16} /> 🖨️ Print {exportCount} Cards
+                        <button className="sa-btn-primary" onClick={() => setShowPrintModal(true)} disabled={cardExporting || exportCount === 0}>
+                          <PrinterIcon size={16} /> 🖨️ Customize & Print ({exportCount} Cards)
+                        </button>
+                        <button className="sa-btn-pill-small" onClick={handlePrintCards} disabled={cardExporting || exportCount === 0} title="Directly launch printer dialog">
+                          ⚡ Quick Print
                         </button>
                         <button className="sa-btn-primary" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }} onClick={handleDownloadCardsPdf} disabled={cardExporting || exportCount === 0}>
-                          <DownloadIcon size={16} /> 📄 Download PDF ({exportCount})
+                          <DownloadIcon size={16} /> 📄 Download A4 PDF ({exportCount})
                         </button>
                         <button className="sa-btn-pill-small" onClick={handleDownloadCardsImage} disabled={cardExporting || exportCount === 0}>
                           🖼️ Download Image ({exportCount})
@@ -1047,6 +1102,24 @@ export default function VoucherFactoryTab({
                 )}
               </div>
             )}
+
+            {/* Print & Customization Studio Modal */}
+            <VoucherPrintModal
+              isOpen={showPrintModal}
+              onClose={() => setShowPrintModal(false)}
+              vouchers={getProcessedVouchers().slice(
+                (voucherPage - 1) * (voucherPageSize === 'all' ? 99999 : Number(voucherPageSize) || 20),
+                voucherPage * (voucherPageSize === 'all' ? 99999 : Number(voucherPageSize) || 20)
+              )}
+              allVouchers={getProcessedVouchers()}
+              brandName={brandingForm?.app_name || 'African Network Wi-Fi'}
+              ssid={mikrotikForm?.wifi_ssid || 'African Network Wi-Fi'}
+              defaultPlanName={voucherGen?.plan_name || '1 Day Pass'}
+              defaultPrice={voucherGen?.price || 100}
+              defaultExpiry={genResult?.expiry_label || voucherGen?.custom_duration || '24h'}
+              defaultDataLimit={voucherGen?.data_limit || 'Unlimited'}
+              showToast={showToast}
+            />
           </div>
 
   );
