@@ -2,7 +2,7 @@ import { fulfillMonnifyPayment } from '@/lib/monnify.js';
 import { validateUserAuth } from '@/lib/user-auth.js';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { createOrQueueHotspotUser, isMikroTikConfigured } from '@/lib/mikrotik';
+import { createOrQueueHotspotUser, isMikroTikConfigured, calculateExpiresAt } from '@/lib/mikrotik';
 import { generateUniqueCode } from '@/lib/voucher-utils.js';
 import { validateBody, verifyPaymentSchema } from '@/lib/schemas';
 import { logger } from '@/lib/logger';
@@ -270,6 +270,10 @@ export async function POST(request) {
       console.warn('Transaction record insert failed (non-fatal):', e.message);
     }
 
+    // Calculate when this voucher expires (wall-clock time)
+    const voucherExpiresAt = calculateExpiresAt(effectiveDuration);
+    const voucherLimitUptime = uptimeMap[effectiveDuration] || '1d';
+
     // 7. Record successful voucher in Supabase (include tx_ref for idempotency)
     await supabaseAdmin
       .from('vouchers')
@@ -282,6 +286,8 @@ export async function POST(request) {
         transaction_id: txId,
         is_used: false,
         auto_renew: !!auto_renew,
+        duration: voucherLimitUptime,
+        expires_at: voucherExpiresAt,
       });
 
     logger.financial({

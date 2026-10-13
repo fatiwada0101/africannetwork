@@ -5,6 +5,7 @@ import {
   generateHotspotLoginHtml,
   pushHotspotLoginPageToRouter,
   detectHotspotDirectory,
+  syncRouterClockAndNtp,
 } from '@/lib/mikrotik';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
@@ -66,6 +67,28 @@ export async function POST(request) {
       results.push({ step: 'DNS & Portal Resolution', status: 'ok', detail: `Set 8.8.8.8, 1.1.1.1 with remote requests + static mapping for "${hotspotUrl}"` });
     } catch (e) {
       results.push({ step: 'DNS & Portal Resolution', status: 'warn', detail: e.message });
+    }
+
+    // ═══ Step 1b: Router Clock, Timezone & NTP Sync (Prevents 1970 date reset on reboot) ═══
+    try {
+      const clockSync = await syncRouterClockAndNtp('Africa/Lagos');
+      if (clockSync.success) {
+        const dateStr = clockSync.clock?.date || 'synced';
+        const timeStr = clockSync.clock?.time || '';
+        results.push({
+          step: 'Router Clock & NTP Time Sync',
+          status: 'ok',
+          detail: `Timezone set to Africa/Lagos. Cloud time & NTP active. Current router date: ${dateStr} ${timeStr}`,
+        });
+      } else {
+        results.push({
+          step: 'Router Clock & NTP Time Sync',
+          status: 'warn',
+          detail: 'Could not sync clock with NTP: ' + (clockSync.reason || 'Check router internet connection'),
+        });
+      }
+    } catch (e) {
+      results.push({ step: 'Router Clock & NTP Time Sync', status: 'warn', detail: e.message });
     }
 
     // ═══ Step 2: Configure WiFi SSID & Open Security (No Password) ═══

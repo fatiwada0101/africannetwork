@@ -86,7 +86,7 @@ function generateRouterOSScript(appUrl, secret, interval) {
 :local shQuoteEnd [:find \$fileContent "\\\"" \$shQuoteStart]
 :local vShared [:pick \$fileContent \$shQuoteStart \$shQuoteEnd]
 :do {
-/ip hotspot user add name=\$vCode password=\$vPass profile=\$vProf limit-uptime=\$vUptime shared-users=\$vShared
+/ip hotspot user add name=\$vCode password=\$vPass profile=\$vProf limit-uptime=\$vUptime
 :log info ("Asuk: Created user " . \$vCode)
 :local postData ("{\\\\\\"secret\\\\\\":\\\\\\"" . \$mySecret . "\\\\\\",\\\\\\"task_id\\\\\\":\\\\\\"" . \$taskId . "\\\\\\",\\\\\\"status\\\\\\":\\\\\\"completed\\\\\\"}")
 /tool fetch url=\$postUrl mode=https http-method=post http-header-field="Content-Type: application/json" http-data=\$postData dst-path="asuk-r.txt"

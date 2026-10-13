@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { getActiveSessions, getHotspotUsers, isMikroTikConfigured } from '@/lib/mikrotik';
+import { getActiveSessions, getHotspotUsers, isMikroTikConfigured, kickActiveSession, deleteHotspotUser, calculateExpiresAt } from '@/lib/mikrotik';
 
 // Helper: parse MikroTik uptime or duration strings like "1h30m20s", "1d2h", "45m", "30s" into total seconds
 function parseDurationToSeconds(str) {
@@ -178,9 +178,13 @@ export async function GET(request) {
 
     const isUsed = !!(dbVoucher?.is_used || uptimeSeconds > 0 || isConnected);
     if (isUsed && dbVoucher && !dbVoucher.is_used) {
+      const updates = { is_used: true };
+      if (!dbVoucher.expires_at) {
+        updates.expires_at = calculateExpiresAt(dbVoucher.duration || dbVoucher.profile_name || '24h');
+      }
       supabaseAdmin
         .from('vouchers')
-        .update({ is_used: true })
+        .update(updates)
         .eq('voucher_code', code)
         .then(() => {})
         .catch(() => {});
@@ -191,8 +195,21 @@ export async function GET(request) {
     const isExpired = (dbVoucher?.status === 'expired') || (secondsRemaining <= 0 && isUsed);
     const isExpiringSoon = !isExpired && isUsed && (secondsRemaining < 1800 || percentRemaining <= 25); // < 30m or < 25%
 
-    // 5. VALIDATION: If voucher is expired, return explicit expired response
-    if (isExpired && !isConnected) {
+    // 5. VALIDATION: If voucher is expired, disconnect from router and return explicit expired response
+    if (isExpired) {
+      // Disconnect user session if currently active on router
+      if (isConnected && routerSession && routerSession['.id']) {
+        kickActiveSession(routerSession['.id']).catch((e) => {
+          console.warn(`Could not kick expired session ${code}:`, e.message);
+        });
+      }
+      // Remove user record from router so they cannot re-authenticate
+      if (routerUser && routerUser['.id']) {
+        deleteHotspotUser(routerUser['.id']).catch((e) => {
+          console.warn(`Could not delete expired user ${code}:`, e.message);
+        });
+      }
+
       // Mark status as expired in DB
       if (dbVoucher && dbVoucher.status !== 'expired') {
         supabaseAdmin

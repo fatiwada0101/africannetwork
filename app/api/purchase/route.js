@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server.js';
 import { supabaseAdmin } from '@/lib/supabase-server.js';
-import { createOrQueueHotspotUser, isMikroTikConfigured } from '@/lib/mikrotik.js';
+import { createOrQueueHotspotUser, isMikroTikConfigured, calculateExpiresAt } from '@/lib/mikrotik.js';
 import { validateUserAuth, userUnauthorizedResponse } from '@/lib/user-auth.js';
 import { generateUniqueCode, generateWalletTxRef } from '@/lib/voucher-utils.js';
 import { validateBody, purchaseSchema } from '@/lib/schemas.js';
@@ -148,6 +148,10 @@ export async function POST(request) {
       '3d': '3d', '7d': '7d', '30d': '30d',
     };
 
+    // Calculate when this voucher expires (wall-clock time)
+    const voucherExpiresAt = calculateExpiresAt(effectiveDuration);
+    const voucherLimitUptime = uptimeMap[effectiveDuration] || '1d';
+
     const rateLimit = `${planUploadSpeed}/${planDownloadSpeed}`;
 
     // 4. Provision voucher — MikroTik router API first, fallback voucher pool when API fails or router is unconfigured
@@ -261,6 +265,8 @@ export async function POST(request) {
           tx_ref: walletTxRef,
           is_used: false,
           auto_renew: !!auto_renew,
+          duration: voucherLimitUptime,
+          expires_at: voucherExpiresAt,
         });
 
       logger.financial({

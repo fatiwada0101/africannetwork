@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createOrQueueHotspotUser } from '@/lib/mikrotik';
+import { createOrQueueHotspotUser, calculateExpiresAt } from '@/lib/mikrotik';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
 
@@ -70,6 +70,10 @@ export async function POST(request) {
       expiry_mode: expiryMode,
     });
 
+    // Calculate expiration timestamp
+    const limitDuration = uptimeMap[duration] || '1d';
+    const expiresAt = calculateExpiresAt(duration || '24h');
+
     // Record in Supabase
     await supabaseAdmin
       .from('vouchers')
@@ -78,6 +82,9 @@ export async function POST(request) {
         profile_name: plan_name,
         price: Number(price),
         is_used: false,
+        duration: limitDuration,
+        expires_at: expiresAt,
+        status: 'active',
       });
 
     return NextResponse.json({

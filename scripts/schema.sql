@@ -306,16 +306,21 @@ BEGIN
   UPDATE public.fallback_vouchers
   SET status = 'expired',
       is_used = true
-  WHERE expires_at IS NOT NULL
-    AND expires_at < NOW()
-    AND status != 'expired';
+  WHERE (
+    (expires_at IS NOT NULL AND expires_at < NOW())
+    OR (expires_at IS NULL AND created_at < NOW() - INTERVAL '30 days')
+  )
+  AND status != 'expired';
 
   UPDATE public.vouchers
   SET status = 'expired',
       is_used = true
-  WHERE expires_at IS NOT NULL
-    AND expires_at < NOW()
-    AND status != 'expired';
+  WHERE status != 'expired'
+    AND (
+      (expires_at IS NOT NULL AND expires_at < NOW())
+      OR (expires_at IS NULL AND is_used = true AND created_at < NOW() - INTERVAL '24 hours')
+      OR (expires_at IS NULL AND created_at < NOW() - INTERVAL '30 days')
+    );
 END;
 $$;
 

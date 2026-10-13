@@ -43,6 +43,52 @@ export default function MikroTikConfigTab({
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [clockSyncLoading, setClockSyncLoading] = useState(false);
+  const [expiryCleanupLoading, setExpiryCleanupLoading] = useState(false);
+
+  const handleSyncClock = async () => {
+    setClockSyncLoading(true);
+    try {
+      const res = await fetch('/api/mikrotik/sync-clock', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ time_zone: 'Africa/Lagos' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Router clock synchronized!', 'success');
+      } else {
+        showToast(data.error || 'Failed to sync clock', 'error');
+      }
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setClockSyncLoading(false);
+    }
+  };
+
+  const handleRunExpiryCleanup = async () => {
+    setExpiryCleanupLoading(true);
+    try {
+      const res = await fetch('/api/cron/expire-vouchers', {
+        method: 'POST',
+        headers: adminHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(
+          `Expiry run complete: ${data.vouchers_expired_in_db || 0} vouchers expired, ${data.router_sessions_kicked || 0} sessions kicked, ${data.router_users_deleted || 0} router users deleted`,
+          'success'
+        );
+      } else {
+        showToast(data.error || 'Failed to run expiry cleanup', 'error');
+      }
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setExpiryCleanupLoading(false);
+    }
+  };
 
   return (
           <div className="sa-tab-body">
@@ -112,6 +158,44 @@ export default function MikroTikConfigTab({
                 >
                   <span style={{ fontSize: '14px' }}>🛡️</span>
                   <span>{restoreLoading ? 'Restoring...' : 'Safe Restore Defaults'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="sa-btn-outline"
+                  onClick={handleSyncClock}
+                  disabled={clockSyncLoading || testLoading}
+                  style={{
+                    borderColor: 'rgba(59, 130, 246, 0.45)',
+                    color: '#60A5FA',
+                    background: 'rgba(59, 130, 246, 0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 700,
+                  }}
+                  title="Synchronize MikroTik router clock with NTP and Cloud Time"
+                >
+                  <span style={{ fontSize: '14px' }}>🕒</span>
+                  <span>{clockSyncLoading ? 'Syncing...' : 'Sync Clock & NTP'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="sa-btn-outline"
+                  onClick={handleRunExpiryCleanup}
+                  disabled={expiryCleanupLoading || testLoading}
+                  style={{
+                    borderColor: 'rgba(168, 85, 247, 0.45)',
+                    color: '#C084FC',
+                    background: 'rgba(168, 85, 247, 0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 700,
+                  }}
+                  title="Force immediate enforcement: Kick expired sessions and delete expired users from MikroTik router"
+                >
+                  <span style={{ fontSize: '14px' }}>⚡</span>
+                  <span>{expiryCleanupLoading ? 'Cleaning...' : 'Enforce Voucher Expiry'}</span>
                 </button>
               </div>
 
