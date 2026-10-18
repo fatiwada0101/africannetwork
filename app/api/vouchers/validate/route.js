@@ -96,6 +96,37 @@ export async function GET(request) {
             }, { status: 410 });
           }
         }
+
+        // BRUTEFORCE wall-clock check: if created_at + duration has elapsed, it's expired. Period.
+        if (dbVoucher.created_at) {
+          const createdMs = new Date(dbVoucher.created_at).getTime();
+          const durationKey = (dbVoucher.duration || dbVoucher.profile_name || '24h').toLowerCase();
+          let maxLifetimeSec = 86400; // default 24h
+          if (durationKey.includes('1h') || durationKey.includes('1 hour')) maxLifetimeSec = 3600;
+          else if (durationKey.includes('2h') || durationKey.includes('2 hour')) maxLifetimeSec = 7200;
+          else if (durationKey.includes('3h') || durationKey.includes('3 hour')) maxLifetimeSec = 10800;
+          else if (durationKey.includes('6h') || durationKey.includes('6 hour')) maxLifetimeSec = 21600;
+          else if (durationKey.includes('12h') || durationKey.includes('12 hour')) maxLifetimeSec = 43200;
+          else if (durationKey.includes('7d') || durationKey.includes('week')) maxLifetimeSec = 604800;
+          else if (durationKey.includes('30d') || durationKey.includes('month')) maxLifetimeSec = 2592000;
+          else if (durationKey.includes('3d')) maxLifetimeSec = 259200;
+          else if (durationKey.includes('2d')) maxLifetimeSec = 172800;
+          else if (durationKey.includes('14d') || durationKey.includes('2w')) maxLifetimeSec = 1209600;
+
+          // 5 minute grace period
+          const deadline = createdMs + (maxLifetimeSec * 1000) + (5 * 60 * 1000);
+          if (Date.now() > deadline) {
+            // Also mark as expired in DB
+            supabaseAdmin.from('vouchers').update({ status: 'expired' }).eq('voucher_code', code).then(() => {}).catch(() => {});
+            return NextResponse.json({
+              valid: false,
+              error: 'This voucher has expired. Please purchase a new plan.',
+              code,
+              plan_name: dbVoucher.profile_name,
+              is_expired: true,
+            }, { status: 410 });
+          }
+        }
       }
 
       // ── KEY FIX: Ensure voucher exists on MikroTik router before returning valid ──

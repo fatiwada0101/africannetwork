@@ -60,6 +60,51 @@ async function processVoucherExpiry(request) {
       if (v.voucher_code) expiredCodes.add(v.voucher_code);
     });
 
+    // 3. BRUTEFORCE: Catch ALL active vouchers where created_at + duration has elapsed
+    // This is the ultimate safety net — if created_at + actual duration < now, it's expired. Period.
+    const durationThresholds = [
+      { match: ['1h', '1 hour'], seconds: 3600 },
+      { match: ['2h', '2 hour'], seconds: 7200 },
+      { match: ['3h', '3 hour'], seconds: 10800 },
+      { match: ['6h', '6 hour'], seconds: 21600 },
+      { match: ['12h', '12 hour'], seconds: 43200 },
+      { match: ['24h', '1d', 'daily', '1 day'], seconds: 86400 },
+      { match: ['2d', '2 day'], seconds: 172800 },
+      { match: ['3d', '3 day'], seconds: 259200 },
+      { match: ['7d', '1w', 'week', '7 day'], seconds: 604800 },
+      { match: ['14d', '2w', '2 week'], seconds: 1209600 },
+      { match: ['30d', '1m', 'month', '30 day'], seconds: 2592000 },
+    ];
+
+    // Fetch all active vouchers and check each one against wall-clock time
+    const { data: allActive } = await supabaseAdmin
+      .from('vouchers')
+      .select('id, voucher_code, duration, profile_name, created_at')
+      .eq('status', 'active')
+      .eq('is_used', true);
+
+    const now = Date.now();
+    (allActive || []).forEach(v => {
+      if (!v.created_at || !v.voucher_code) return;
+      const createdMs = new Date(v.created_at).getTime();
+      const durationKey = (v.duration || v.profile_name || '24h').toLowerCase();
+
+      // Find matching duration
+      let maxLifetimeSec = 86400; // default 24h
+      for (const t of durationThresholds) {
+        if (t.match.some(m => durationKey.includes(m))) {
+          maxLifetimeSec = t.seconds;
+          break;
+        }
+      }
+
+      // Add 5 minute grace period
+      const deadline = createdMs + (maxLifetimeSec * 1000) + (5 * 60 * 1000);
+      if (now > deadline) {
+        expiredCodes.add(v.voucher_code);
+      }
+    });
+
     // Also include recently expired vouchers from past 48h to clean any lingering router records
     const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
     const { data: recentExpired } = await supabaseAdmin
