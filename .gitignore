@@ -46,5 +46,8 @@ next-env.d.ts
 # agent files and credentials
 .agents/
 docs/production-roadmap/credentials.md
+docs/vps-server-config.md
+
+.vercel
 
 .vercel

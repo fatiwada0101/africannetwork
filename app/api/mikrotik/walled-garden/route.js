@@ -10,7 +10,9 @@ export async function GET(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
 
   try {
-    const entries = await getWalledGardenEntries();
+    const { searchParams } = new URL(request.url);
+    const routerId = searchParams.get('router_id');
+    const entries = await getWalledGardenEntries(routerId || undefined);
     return NextResponse.json({ success: true, entries });
   } catch (error) {
     console.error('Walled garden list error:', error.message);
@@ -23,13 +25,13 @@ export async function GET(request) {
 
 /**
  * POST — Add a new domain to the walled garden bypass list
- * Body: { dst_host, comment?, category? }
+ * Body: { dst_host, comment?, category?, router_id? }
  */
 export async function POST(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
 
   try {
-    const { dst_host, comment = '', category = 'custom' } = await request.json();
+    const { dst_host, comment = '', category = 'custom', router_id } = await request.json();
 
     if (!dst_host || typeof dst_host !== 'string' || !dst_host.trim()) {
       return NextResponse.json({ error: 'dst_host is required' }, { status: 400 });
@@ -60,6 +62,7 @@ export async function POST(request) {
       dstHost: cleanHost,
       action: 'allow',
       comment: fullComment,
+      routerId: router_id || undefined,
     });
 
 
@@ -69,8 +72,8 @@ export async function POST(request) {
       action: 'add',
       summary: `Added "${cleanHost}" to walled garden bypass`,
       beforeState: {},
-      afterState: { dst_host: cleanHost, comment: fullComment, category },
-      metadata: { dst_host: cleanHost, comment: fullComment, category },
+      afterState: { dst_host: cleanHost, comment: fullComment, category, router_id },
+      metadata: { dst_host: cleanHost, comment: fullComment, category, router_id },
     });
 
     return NextResponse.json({ success: true, entry: result });
@@ -85,19 +88,19 @@ export async function POST(request) {
 
 /**
  * DELETE — Remove a walled garden entry by MikroTik ID
- * Body: { id, source?, dst_host?, comment? }
+ * Body: { id, source?, dst_host?, comment?, router_id? }
  */
 export async function DELETE(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
 
   try {
-    const { id, source, dst_host, comment } = await request.json();
+    const { id, source, dst_host, comment, router_id } = await request.json();
 
     if (!id) {
       return NextResponse.json({ error: 'Entry ID is required' }, { status: 400 });
     }
 
-    await removeWalledGardenEntry(id, source);
+    await removeWalledGardenEntry(id, source, router_id || undefined);
 
     // Log to change history
     const targetLabel = dst_host || id;
@@ -105,9 +108,9 @@ export async function DELETE(request) {
       category: 'walled-garden',
       action: 'remove',
       summary: `Removed "${targetLabel}" from walled garden bypass`,
-      beforeState: { id, dst_host, comment, source },
+      beforeState: { id, dst_host, comment, source, router_id },
       afterState: {},
-      metadata: { id, dst_host, comment, source },
+      metadata: { id, dst_host, comment, source, router_id },
     });
 
     return NextResponse.json({ success: true });

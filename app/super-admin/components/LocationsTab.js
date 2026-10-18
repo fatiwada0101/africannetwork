@@ -14,15 +14,54 @@ import {
   ZapIcon,
 } from '../../components/Icons';
 
-export default function LocationsTab({ adminHeaders, showToast }) {
+export default function LocationsTab({
+  adminHeaders,
+  showToast,
+  selectedRouterId = '',
+  onSelectRouter = () => {},
+  handleTestMikrotik = () => {},
+}) {
   const [locations, setLocations] = useState([]);
   const [routers, setRouters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [testingRouterId, setTestingRouterId] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showRouterModal, setShowRouterModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [editingRouter, setEditingRouter] = useState(null);
   const [gpsDetecting, setGpsDetecting] = useState(false);
+
+  const handleTestSingleRouter = async (router) => {
+    setTestingRouterId(router.id);
+    try {
+      const res = await fetch(`/api/mikrotik/test-connection?router_id=${encodeURIComponent(router.id)}`, {
+        headers: adminHeaders(),
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await res.json();
+      if (data.connected) {
+        showToast?.(`✅ ${router.name} connected! Model: ${data.router?.model || 'MikroTik'}, RouterOS: ${data.router?.version || 'v7+'}`, 'success');
+      } else {
+        showToast?.(`⚠️ ${router.name} offline: ${data.error || 'Connection failed'}`, 'error');
+      }
+      fetchData();
+    } catch (err) {
+      showToast?.(`Network error testing ${router.name}: ${err.message}`, 'error');
+    } finally {
+      setTestingRouterId(null);
+    }
+  };
+
+  const handleDownloadRouterScript = (router) => {
+    const url = `/api/mikrotik/polling/script?router_id=${encodeURIComponent(router.id)}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `asuk_agent_${router.identity || router.name}.rsc`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast?.(`📥 Downloaded RouterOS script for ${router.name}`, 'success');
+  };
 
   // Form states
   const [locForm, setLocForm] = useState({
@@ -427,13 +466,14 @@ export default function LocationsTab({ adminHeaders, showToast }) {
                 <th>Mode</th>
                 <th>IP / Host</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Last Seen</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {routers.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF' }}>
                     No routers configured yet.
                   </td>
                 </tr>
@@ -442,6 +482,11 @@ export default function LocationsTab({ adminHeaders, showToast }) {
                   <tr key={r.id}>
                     <td>
                       <strong>{r.name}</strong>
+                      {r.id === selectedRouterId && (
+                        <span className="sa-badge sa-badge-purple" style={{ marginLeft: '6px', fontSize: '10px' }}>
+                          Active Target
+                        </span>
+                      )}
                     </td>
                     <td>
                       <code>{r.identity}</code>
@@ -462,11 +507,52 @@ export default function LocationsTab({ adminHeaders, showToast }) {
                           color: r.status === 'online' ? '#10B981' : '#EF4444',
                         }}
                       >
-                        {r.status}
+                        {r.status === 'online' ? '● Online' : '○ Offline'}
                       </span>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                      {r.last_seen_at ? (
+                        <span style={{ fontSize: '11px', color: '#8E8E93' }}>
+                          {new Date(r.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: '#666' }}>Never</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                        <button
+                          className="sa-btn-pill-small"
+                          style={{
+                            background: r.id === selectedRouterId ? 'rgba(52, 168, 83, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+                            color: r.id === selectedRouterId ? '#34A853' : '#fff',
+                            borderColor: r.id === selectedRouterId ? '#34A853' : 'rgba(255, 255, 255, 0.15)',
+                          }}
+                          onClick={() => onSelectRouter(r.id)}
+                          title="Set this router as active configuration target"
+                        >
+                          {r.id === selectedRouterId ? '✓ Target' : '🎯 Target'}
+                        </button>
+
+                        <button
+                          className="sa-btn-pill-small"
+                          onClick={() => handleTestSingleRouter(r)}
+                          disabled={testingRouterId === r.id}
+                          style={{ background: 'rgba(52, 168, 83, 0.12)', color: '#34A853', borderColor: 'rgba(52, 168, 83, 0.3)' }}
+                          title="Test REST API or polling responsiveness"
+                        >
+                          {testingRouterId === r.id ? 'Testing...' : '⚡ Test'}
+                        </button>
+
+                        <button
+                          className="sa-btn-pill-small"
+                          onClick={() => handleDownloadRouterScript(r)}
+                          style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#60A5FA', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                          title="Download customized RouterOS script (.rsc) for this router"
+                        >
+                          📥 .rsc
+                        </button>
+
                         <button
                           className="sa-btn-icon"
                           title="Edit Router"

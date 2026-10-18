@@ -33,20 +33,24 @@ export async function GET(request) {
       }, { status: 400 });
     }
 
+    const routerIdParam = searchParams.get('router_id')?.trim();
+
     // 1. Check Supabase vouchers table
     const { data: dbVoucher } = await supabaseAdmin
       .from('vouchers')
-      .select('voucher_code, profile_name, price, is_used, created_at, status, expires_at, data_limit, duration')
+      .select('voucher_code, profile_name, price, is_used, created_at, status, expires_at, data_limit, duration, last_router_id')
       .eq('voucher_code', code)
       .maybeSingle();
+
+    const targetRouterId = routerIdParam || dbVoucher?.last_router_id || null;
 
     // 2. Check MikroTik for this user (needed for both DB and non-DB paths)
     const configured = await isMikroTikConfigured();
     let routerUser = null;
 
-    if (configured) {
+    if (configured || targetRouterId) {
       try {
-        const users = await getHotspotUsers();
+        const users = await getHotspotUsers(targetRouterId);
         routerUser = users.find((u) => u.name === code);
       } catch (e) {
         console.warn('Router user lookup during validation (non-fatal):', e.message);
@@ -173,6 +177,7 @@ export async function GET(request) {
             shared_users: planDevices,
             rate_limit: rateLimit,
             expiry_mode: expiryMode,
+            routerId: targetRouterId,
           });
           console.log(`✅ Auto-provisioned voucher ${code} on MikroTik successfully`);
         } catch (provisionErr) {

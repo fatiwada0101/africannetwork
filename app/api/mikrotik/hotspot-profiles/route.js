@@ -11,7 +11,9 @@ import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth.js';
 export async function GET(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const profiles = await getHotspotProfiles();
+    const { searchParams } = new URL(request.url);
+    const routerId = searchParams.get('router_id') || undefined;
+    const profiles = await getHotspotProfiles(routerId);
     return NextResponse.json({ success: true, profiles });
   } catch (error) {
     console.error('Hotspot profiles fetch error:', error.message);
@@ -26,7 +28,7 @@ export async function GET(request) {
 export async function PUT(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const profileData = await request.json();
+    const { router_id, ...profileData } = await request.json();
 
     if (!profileData.name) {
       return NextResponse.json({ error: 'Profile name is required' }, { status: 400 });
@@ -43,7 +45,7 @@ export async function PUT(request) {
     if (profileData['idle-timeout']) routerProfile['idle-timeout'] = profileData['idle-timeout'];
     if (profileData['keepalive-timeout']) routerProfile['keepalive-timeout'] = profileData['keepalive-timeout'];
 
-    const result = await createHotspotProfile(routerProfile);
+    const result = await createHotspotProfile(routerProfile, router_id || undefined);
     return NextResponse.json({ success: true, profile: result });
   } catch (error) {
     console.error('Create profile error:', error.message);
@@ -58,7 +60,7 @@ export async function PUT(request) {
 export async function PATCH(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const { profile_id, ...updateData } = await request.json();
+    const { profile_id, router_id, ...updateData } = await request.json();
     if (!profile_id) {
       return NextResponse.json({ error: 'Missing profile_id' }, { status: 400 });
     }
@@ -71,7 +73,7 @@ export async function PATCH(request) {
     if (updateData['idle-timeout'] !== undefined) cleanData['idle-timeout'] = updateData['idle-timeout'];
     if (updateData['keepalive-timeout'] !== undefined) cleanData['keepalive-timeout'] = updateData['keepalive-timeout'];
 
-    const result = await updateHotspotProfile(profile_id, cleanData);
+    const result = await updateHotspotProfile(profile_id, cleanData, router_id || undefined);
     return NextResponse.json({ success: true, profile: result });
   } catch (error) {
     console.error('Update profile error:', error.message);
@@ -86,12 +88,12 @@ export async function PATCH(request) {
 export async function DELETE(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const { profile_id } = await request.json();
+    const { profile_id, router_id } = await request.json();
     if (!profile_id) {
       return NextResponse.json({ error: 'Missing profile_id' }, { status: 400 });
     }
 
-    await deleteHotspotProfile(profile_id);
+    await deleteHotspotProfile(profile_id, router_id || undefined);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete profile error:', error.message);

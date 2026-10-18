@@ -141,8 +141,9 @@ export async function POST(request) {
         .upsert({ key: 'portal_template', value: portalConfig }, { onConflict: 'key' });
     } catch {}
 
+    const routerId = body.router_id || null;
     const result = await pushHotspotLoginPageToRouter({
-      templateId, wifiSsid, buyUrl, logoUrl, businessName, contactFooter, primaryColor,
+      templateId, wifiSsid, buyUrl, logoUrl, businessName, contactFooter, primaryColor, routerId,
     });
 
 

@@ -113,6 +113,10 @@ export default function SuperAdminPage() {
   const [plans, setPlans] = useState([]);
   const [settings, setSettings] = useState({});
 
+  // Router Fleet Management & Target Selection
+  const [routersList, setRoutersList] = useState([]);
+  const [selectedRouterId, setSelectedRouterId] = useState('');
+
   // MikroTik Config
   const [mikrotikForm, setMikrotikForm] = useState({
     ip: '192.168.88.1',
@@ -379,15 +383,31 @@ export default function SuperAdminPage() {
 
   // ── Data Fetchers ──────────────────────────────────────────
 
+  const fetchRoutersList = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/super-admin/routers/list', { headers: adminHeaders() });
+      if (res.ok) {
+        const d = await res.json();
+        setRoutersList(d.routers || []);
+      }
+    } catch (err) { console.error('Routers list fetch error:', err); }
+  }, [token, adminHeaders]);
+
   const fetchCoreData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const [statsRes, settingsRes, plansRes, sessionsRes] = await Promise.all([
+      const sessionsUrl = selectedRouterId
+        ? `/api/mikrotik/active-sessions?router_id=${encodeURIComponent(selectedRouterId)}`
+        : '/api/mikrotik/active-sessions';
+
+      const [statsRes, settingsRes, plansRes, sessionsRes, routersRes] = await Promise.all([
         fetch('/api/admin/stats', { headers: adminHeaders() }),
         fetch('/api/super-admin/settings', { headers: adminHeaders() }),
         fetch('/api/super-admin/plans?all=true', { headers: adminHeaders() }),
-        fetch('/api/mikrotik/active-sessions', { headers: adminHeaders() }),
+        fetch(sessionsUrl, { headers: adminHeaders() }),
+        fetch('/api/super-admin/routers/list', { headers: adminHeaders() }),
       ]);
 
       if (statsRes.ok) {
@@ -421,22 +441,30 @@ export default function SuperAdminPage() {
         setSessions(list);
         setStats(prev => ({ ...prev, activeSessions: list.length }));
       }
+
+      if (routersRes && routersRes.ok) {
+        const rd = await routersRes.json();
+        setRoutersList(rd.routers || []);
+      }
     } catch (err) { console.error('Core data fetch error:', err); }
     finally { setLoading(false); }
-  }, [token, adminHeaders]);
+  }, [token, adminHeaders, selectedRouterId]);
 
   const fetchRouterUsers = useCallback(async () => {
     if (!token) return;
     setRouterUsersLoading(true);
     try {
-      const res = await fetch('/api/mikrotik/hotspot-users', { headers: adminHeaders() });
+      const url = selectedRouterId
+        ? `/api/mikrotik/hotspot-users?router_id=${encodeURIComponent(selectedRouterId)}`
+        : '/api/mikrotik/hotspot-users';
+      const res = await fetch(url, { headers: adminHeaders() });
       if (res.ok) {
         const d = await res.json();
         setRouterUsers(d.users || []);
       }
     } catch (err) { console.error('Router users error:', err); }
     finally { setRouterUsersLoading(false); }
-  }, [token, adminHeaders]);
+  }, [token, adminHeaders, selectedRouterId]);
 
   const fetchRouterProfiles = useCallback(async () => {
     if (!token) return;
@@ -515,26 +543,35 @@ export default function SuperAdminPage() {
     }
   }, [historyFilter, adminHeaders]);
 
-  const handleTestMikrotik = useCallback(async (silent = false) => {
+  const handleTestMikrotik = useCallback(async (silent = false, routerId = null) => {
     setTestLoading(true);
     try {
-      const res = await fetch('/api/mikrotik/test-connection', {
+      const targetRouterId = routerId || selectedRouterId;
+      const url = targetRouterId
+        ? `/api/mikrotik/test-connection?router_id=${encodeURIComponent(targetRouterId)}`
+        : '/api/mikrotik/test-connection';
+      const res = await fetch(url, {
         headers: adminHeaders(),
         signal: AbortSignal.timeout(10000),
       });
       const data = await res.json();
       setTestResult(data);
       if (!silent) {
-        if (data.connected) showToast('✅ Router Connected!');
-        else showToast(data.error ? `⚠️ ${data.error}` : '⚠️ Connection failed');
+        if (data.connected) {
+          const idInfo = data.identity || data.router?.model || '';
+          showToast(`✅ Router Connected! ${idInfo ? `(${idInfo})` : ''}`);
+        } else {
+          showToast(data.error ? `⚠️ ${data.error}` : '⚠️ Connection failed');
+        }
       }
+      fetchRoutersList();
     } catch (err) {
       const isTimeout = err.name === 'TimeoutError' || err.message?.includes('timeout');
       const msg = isTimeout ? 'Connection timed out after 10s. Check router IP and port.' : err.message;
       setTestResult({ connected: false, error: msg });
       if (!silent) showToast(`Network error: ${msg}`);
     } finally { setTestLoading(false); }
-  }, [adminHeaders]);
+  }, [adminHeaders, selectedRouterId, fetchRoutersList, showToast]);
 
   const handleRestartMikrotik = useCallback(async () => {
     setRebootLoading(true);
@@ -545,7 +582,9 @@ export default function SuperAdminPage() {
       const res = await fetch('/api/mikrotik/reboot', {
         method: 'POST',
         headers: adminHeaders(),
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          router_id: selectedRouterId || undefined,
+        }),
       });
 
       const data = await res.json();
@@ -708,6 +747,7 @@ export default function SuperAdminPage() {
         method: 'POST',
         headers: adminHeaders(),
         body: JSON.stringify({
+          router_id: selectedRouterId || undefined,
           dns_name: mikrotikForm.hotspot_url,
           wifi_ssid: mikrotikForm.wifi_ssid,
         }),
@@ -839,7 +879,7 @@ export default function SuperAdminPage() {
     try {
       const res = await fetch('/api/mikrotik/kick-user', {
         method: 'POST', headers: adminHeaders(),
-        body: JSON.stringify({ session_id: sessionId }),
+        body: JSON.stringify({ session_id: sessionId, router_id: selectedRouterId || undefined }),
       });
       if (res.ok) { showToast(`Disconnected: ${username}`); fetchCoreData(); }
     } catch { showToast('Network error'); }
@@ -906,6 +946,7 @@ export default function SuperAdminPage() {
         headers: adminHeaders(),
         body: JSON.stringify({
           ...voucherGen,
+          router_id: voucherGen.router_id || selectedRouterId || undefined,
           data_limit: effectiveDataLimit,
         }),
       });
@@ -1521,7 +1562,10 @@ export default function SuperAdminPage() {
         elapsedText: updateElapsed(),
       }));
 
-      const testRes = await fetch('/api/mikrotik/test-connection', {
+      const testUrl = selectedRouterId
+        ? `/api/mikrotik/test-connection?router_id=${encodeURIComponent(selectedRouterId)}`
+        : '/api/mikrotik/test-connection';
+      const testRes = await fetch(testUrl, {
         headers: adminHeaders(),
         signal: AbortSignal.timeout(12000),
       });
@@ -1564,6 +1608,9 @@ export default function SuperAdminPage() {
       const res = await fetch('/api/mikrotik/auto-setup', {
         method: 'POST',
         headers: adminHeaders(),
+        body: JSON.stringify({
+          router_id: selectedRouterId || undefined,
+        }),
         signal: abortController.signal,
       });
 
@@ -1678,6 +1725,7 @@ export default function SuperAdminPage() {
         method: 'POST',
         headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          router_id: selectedRouterId || undefined,
           template_id: portalTemplate,
           wifi_ssid: mikrotikForm.wifi_ssid || 'African Network Wi-Fi',
           business_name: portalConfig.businessName || mikrotikForm.wifi_ssid || brandingForm.app_name || '',
@@ -1745,7 +1793,7 @@ export default function SuperAdminPage() {
       const res = await fetch('/api/mikrotik/hotspot-users', {
         method: 'DELETE',
         headers: adminHeaders(),
-        body: JSON.stringify({ user_id: userId }),
+        body: JSON.stringify({ user_id: userId, router_id: selectedRouterId || undefined }),
       });
       if (res.ok) { showToast(`Deleted: ${name}`); fetchRouterUsers(); }
       else showToast('Failed to delete');
@@ -1762,7 +1810,7 @@ export default function SuperAdminPage() {
     actionLockRef.current = true;
     setActionBusy(true);
     try {
-      const body = { user_id: editingUser };
+      const body = { user_id: editingUser, router_id: selectedRouterId || undefined };
       if (userEditForm['limit-uptime']) body['limit-uptime'] = userEditForm['limit-uptime'];
       if (userEditForm.profile) body.profile = userEditForm.profile;
 
@@ -1993,6 +2041,49 @@ export default function SuperAdminPage() {
             <p className="sa-page-subtitle">Real-time Hotspot &amp; Network Analytics</p>
           </div>
           <div className="sa-header-right">
+            {/* Global Multi-Router Target Selector */}
+            <div
+              className="sa-global-router-selector"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '4px 10px',
+              }}
+              title="Target Router for MikroTik operations and voucher generation"
+            >
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Router:
+              </span>
+              <select
+                id="global-router-selector"
+                value={selectedRouterId}
+                onChange={(e) => setSelectedRouterId(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  color: 'inherit',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  maxWidth: '220px',
+                }}
+              >
+                <option value="" style={{ background: '#1c1c24', color: '#fff' }}>
+                  🌐 All / Primary Router
+                </option>
+                {routersList.map((r) => (
+                  <option key={r.id} value={r.id} style={{ background: '#1c1c24', color: '#fff' }}>
+                    {r.status === 'online' ? '🟢' : '🔴'} {r.name} {r.locations?.name ? `(${r.locations.name})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <button className="sa-action-btn sa-btn-outline" onClick={toggleMode} title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}>
               <span>{isDark ? '🌙 Dark' : '☀️ Light'}</span>
             </button>
@@ -2028,6 +2119,9 @@ export default function SuperAdminPage() {
             flutterwaveForm={flutterwaveForm}
             copyCode={copyCode}
             copiedPin={copiedPin}
+            selectedRouterId={selectedRouterId}
+            setSelectedRouterId={setSelectedRouterId}
+            routersList={routersList}
           />
         )}
 
@@ -2062,6 +2156,9 @@ export default function SuperAdminPage() {
             mikrotikForm={mikrotikForm}
             brandingForm={brandingForm}
             fetchCoreData={fetchCoreData}
+            selectedRouterId={selectedRouterId}
+            setSelectedRouterId={setSelectedRouterId}
+            routersList={routersList}
           />
         )}
 
@@ -2179,6 +2276,9 @@ export default function SuperAdminPage() {
             setPortalPushProgress={setPortalPushProgress}
             handlePushLoginPageWithProgress={handlePushLoginPageWithProgress}
             portalPushing={portalPushing}
+            selectedRouterId={selectedRouterId}
+            setSelectedRouterId={setSelectedRouterId}
+            routersList={routersList}
           />
         )}
 
@@ -2238,7 +2338,16 @@ export default function SuperAdminPage() {
 
         {/* ═══ TAB: LOCATIONS & FLEET ═══ */}
         {activeTab === 'locations' && (
-          <LocationsTab adminHeaders={adminHeaders} showToast={showToast} />
+          <LocationsTab
+            adminHeaders={adminHeaders}
+            showToast={showToast}
+            selectedRouterId={selectedRouterId}
+            onSelectRouter={(rId) => {
+              setSelectedRouterId(rId);
+              setActiveTab('mikrotik');
+            }}
+            handleTestMikrotik={handleTestMikrotik}
+          />
         )}
 
         {/* ═══ TAB: SUPPORT TICKETS (Feature 4.3) ═══ */}

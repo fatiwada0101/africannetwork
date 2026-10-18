@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server.js';
-import { setHotspotDnsName, getMikroTikConfig } from '@/lib/mikrotik.js';
+import { setHotspotDnsName, getMikroTikConfig, getMikroTikConfigForRouter } from '@/lib/mikrotik.js';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth.js';
 import { supabaseAdmin } from '@/lib/supabase-server.js';
 
@@ -11,8 +11,10 @@ export async function POST(request) {
     let dnsName = body.dns_name;
     const wifiSsid = body.wifi_ssid;
 
+    const routerId = body.router_id || null;
+
     if (!dnsName) {
-      const config = await getMikroTikConfig();
+      const config = routerId ? await getMikroTikConfigForRouter(routerId) : await getMikroTikConfig();
       dnsName = config.hotspot_url;
     }
 
@@ -21,31 +23,37 @@ export async function POST(request) {
     }
 
     // 1. Provision to MikroTik router
-    const result = await setHotspotDnsName(dnsName);
+    const result = await setHotspotDnsName(dnsName, routerId);
 
-    // 2. Persist in app_settings (key: 'mikrotik')
-    const { data: currentSetting } = await supabaseAdmin
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'mikrotik')
-      .maybeSingle();
+    // 2. Persist in routers table if router_id specified, otherwise in app_settings (key: 'mikrotik')
+    if (routerId) {
+      const updatePayload = { dns_name: dnsName.trim(), updated_at: new Date().toISOString() };
+      if (wifiSsid) updatePayload.name = wifiSsid.trim();
+      await supabaseAdmin.from('routers').update(updatePayload).eq('id', routerId);
+    } else {
+      const { data: currentSetting } = await supabaseAdmin
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'mikrotik')
+        .maybeSingle();
 
-    const existingValue = currentSetting?.value || {};
-    const updatedValue = {
-      ...existingValue,
-      hotspot_url: dnsName.trim(),
-    };
-    if (wifiSsid) {
-      updatedValue.wifi_ssid = wifiSsid.trim();
+      const existingValue = currentSetting?.value || {};
+      const updatedValue = {
+        ...existingValue,
+        hotspot_url: dnsName.trim(),
+      };
+      if (wifiSsid) {
+        updatedValue.wifi_ssid = wifiSsid.trim();
+      }
+
+      await supabaseAdmin
+        .from('app_settings')
+        .upsert({
+          key: 'mikrotik',
+          value: updatedValue,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' });
     }
-
-    await supabaseAdmin
-      .from('app_settings')
-      .upsert({
-        key: 'mikrotik',
-        value: updatedValue,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'key' });
 
     return NextResponse.json({
       success: true,

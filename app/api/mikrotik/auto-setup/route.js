@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   buildMikroTikRequest,
   getMikroTikConfig,
+  getMikroTikConfigForRouter,
   generateHotspotLoginHtml,
   pushHotspotLoginPageToRouter,
   detectHotspotDirectory,
@@ -11,9 +12,11 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
 import { logChange } from '@/lib/changeHistory';
 
+let activeRouterId = null;
+
 /** Helper: make a MikroTik REST API call */
 async function mikrotikCall(endpoint, method = 'GET', body = null, timeoutMs = 15000) {
-  const { url, headers } = await buildMikroTikRequest(endpoint);
+  const { url, headers } = await buildMikroTikRequest(endpoint, activeRouterId);
   const opts = { method, headers: { ...headers }, signal: AbortSignal.timeout(timeoutMs) };
   if (body) {
     opts.headers['Content-Type'] = 'application/json';
@@ -27,6 +30,7 @@ async function mikrotikCall(endpoint, method = 'GET', body = null, timeoutMs = 1
 /**
  * POST /api/mikrotik/auto-setup — Full 1-click router configuration
  * Sets up WiFi, hotspot server, profiles, DNS, firewall — everything.
+ * Accepts optional `router_id` in request body.
  */
 export async function POST(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
@@ -35,7 +39,12 @@ export async function POST(request) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    const config = await getMikroTikConfig();
+    const routerId = body.router_id || null;
+    activeRouterId = routerId;
+
+    const config = routerId
+      ? await getMikroTikConfigForRouter(routerId)
+      : await getMikroTikConfig();
     const hotspotUrl = config.hotspot_url || 'asuktech.net';
     const wifiSsid = config.wifi_ssid || 'African Network Wi-Fi';
 
@@ -71,7 +80,7 @@ export async function POST(request) {
 
     // ═══ Step 1b: Router Clock, Timezone & NTP Sync (Prevents 1970 date reset on reboot) ═══
     try {
-      const clockSync = await syncRouterClockAndNtp('Africa/Lagos');
+      const clockSync = await syncRouterClockAndNtp('Africa/Lagos', routerId);
       if (clockSync.success) {
         const dateStr = clockSync.clock?.date || 'synced';
         const timeStr = clockSync.clock?.time || '';
@@ -698,6 +707,7 @@ export async function POST(request) {
         logoUrl: savedPortalConfig.logoUrl || savedBrandingConfig.logo_url || '',
         contactFooter: savedPortalConfig.contactFooter || '',
         primaryColor: savedPortalConfig.primaryColor || '',
+        routerId,
       });
 
       results.push({

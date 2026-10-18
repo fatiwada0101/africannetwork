@@ -13,6 +13,9 @@ export default function VoucherFactoryTab({
   mikrotikForm,
   brandingForm,
   fetchCoreData,
+  selectedRouterId = '',
+  setSelectedRouterId = () => {},
+  routersList = [],
 }) {
   // Voucher Generator State
   const [voucherGen, setVoucherGen] = useState({
@@ -30,7 +33,14 @@ export default function VoucherFactoryTab({
     devices: 1,
     upload_speed: '12M',
     download_speed: '12M',
+    router_id: selectedRouterId || '',
   });
+
+  useEffect(() => {
+    if (selectedRouterId) {
+      setVoucherGen((prev) => ({ ...prev, router_id: selectedRouterId }));
+    }
+  }, [selectedRouterId]);
   const [voucherFactoryTab, setVoucherFactoryTab] = useState('generator'); // 'generator' | 'batches'
   const [batchHistory, setBatchHistory] = useState([]);
   const [batchHistoryLoading, setBatchHistoryLoading] = useState(false);
@@ -144,6 +154,7 @@ export default function VoucherFactoryTab({
         headers: adminHeaders(),
         body: JSON.stringify({
           ...voucherGen,
+          router_id: voucherGen.router_id || selectedRouterId || undefined,
           data_limit: effectiveDataLimit,
         }),
       });
@@ -466,6 +477,22 @@ export default function VoucherFactoryTab({
 
                   {/* Form Grid */}
                   <div className="sa-form-grid-3">
+                    <div className="sa-field-box">
+                      <label>Target Router &amp; Location</label>
+                      <select
+                        value={voucherGen.router_id || ''}
+                        onChange={e => setVoucherGen({ ...voucherGen, router_id: e.target.value })}
+                        style={{ fontWeight: 600 }}
+                      >
+                        <option value="">🌐 Default / Primary Router</option>
+                        {routersList?.map(r => (
+                          <option key={r.id} value={r.id}>
+                            {r.status === 'online' ? '🟢' : '🔴'} {r.name} {r.locations?.name ? `(${r.locations.name})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div className="sa-field-box">
                       <label>Quantity (1-100)</label>
                       <input type="number" min="1" max="100" value={voucherGen.quantity}
@@ -1043,6 +1070,7 @@ export default function VoucherFactoryTab({
                       <thead>
                         <tr>
                           <th>Batch ID</th>
+                          <th>Target Router</th>
                           <th>Plan Name</th>
                           <th>Vouchers</th>
                           <th>Data Quota</th>
@@ -1055,6 +1083,15 @@ export default function VoucherFactoryTab({
                           <tr key={b.batch_id}>
                             <td>
                               <code style={{ color: '#81C995', fontWeight: 600 }}>{b.batch_id}</code>
+                            </td>
+                            <td>
+                              {b.router_name || b.router_id ? (
+                                <span className="sa-badge" style={{ background: 'rgba(52, 168, 83, 0.12)', color: '#34A853', fontWeight: 600 }}>
+                                  ⚡ {b.router_name || 'Assigned Router'}
+                                </span>
+                              ) : (
+                                <span className="sa-badge sa-badge-muted">🌐 Default</span>
+                              )}
                             </td>
                             <td>
                               <strong>{b.plan_name || 'Standard Pass'}</strong>

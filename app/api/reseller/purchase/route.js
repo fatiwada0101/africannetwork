@@ -77,10 +77,17 @@ export async function POST(request) {
     for (let i = 0; i < qty; i++) {
       const code = generateVoucherCode(8);
       vouchersToInsert.push({
-        code,
+        voucher_code: code,
+        profile_name: plan.name,
+        price: wholesalePricePerUnit,
+        duration: plan.duration || '1d',
+        data_limit: plan.data_limit || 'unlimited',
         plan_id: plan.id,
         user_id: userId,
         status: 'active',
+        is_used: false,
+        batch_id: batchId,
+        serial_number: i + 1,
         created_at: now.toISOString(),
         metadata: {
           batch_id: batchId,
@@ -140,7 +147,7 @@ export async function POST(request) {
       total_cost: totalCost,
       total_saved: totalCommissionSaved,
       discount_percent: discountPercent,
-      vouchers: createdVouchers.map(v => ({ id: v.id, code: v.code, plan_name: plan.name }))
+      vouchers: createdVouchers.map(v => ({ id: v.id, code: v.voucher_code || v.code, plan_name: plan.name }))
     });
 
   } catch (error) {

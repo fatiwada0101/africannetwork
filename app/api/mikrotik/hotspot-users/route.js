@@ -6,7 +6,9 @@ import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth.js';
 export async function GET(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const users = await getHotspotUsers();
+    const { searchParams } = new URL(request.url);
+    const routerId = searchParams.get('router_id') || undefined;
+    const users = await getHotspotUsers(routerId);
     return NextResponse.json({ success: true, users });
   } catch (error) {
     console.error('Hotspot users fetch error:', error.message);
@@ -21,12 +23,12 @@ export async function GET(request) {
 export async function DELETE(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const { user_id } = await request.json();
+    const { user_id, router_id } = await request.json();
     if (!user_id) {
       return NextResponse.json({ error: 'Missing user_id' }, { status: 400 });
     }
 
-    await deleteHotspotUser(user_id);
+    await deleteHotspotUser(user_id, router_id || undefined);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete hotspot user error:', error.message);
@@ -41,12 +43,12 @@ export async function DELETE(request) {
 export async function PATCH(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const { user_id, ...updateData } = await request.json();
+    const { user_id, router_id, ...updateData } = await request.json();
     if (!user_id) {
       return NextResponse.json({ error: 'Missing user_id' }, { status: 400 });
     }
 
-    const result = await updateHotspotUser(user_id, updateData);
+    const result = await updateHotspotUser(user_id, updateData, router_id || undefined);
     return NextResponse.json({ success: true, user: result });
   } catch (error) {
     console.error('Update hotspot user error:', error.message);

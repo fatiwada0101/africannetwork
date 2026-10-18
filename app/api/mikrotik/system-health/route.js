@@ -7,14 +7,15 @@ export async function GET(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   const { searchParams } = new URL(request.url);
   const logTopics = searchParams.get('log_topics') || null;
+  const routerId = searchParams.get('router_id') || undefined;
 
   try {
     // Fetch all data in parallel for efficiency
     const [health, leases, logs, interfaces] = await Promise.allSettled([
-      getSystemHealth(),
-      getDHCPLeases(),
-      getRouterLogs(logTopics),
-      getInterfaces(),
+      getSystemHealth(routerId),
+      getDHCPLeases(routerId),
+      getRouterLogs(logTopics, routerId),
+      getInterfaces(routerId),
     ]);
 
     return NextResponse.json({

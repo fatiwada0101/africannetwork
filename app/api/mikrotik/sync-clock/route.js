@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { syncRouterClockAndNtp, buildMikroTikRequest, getMikroTikConfig } from '@/lib/mikrotik';
+import { syncRouterClockAndNtp, buildMikroTikRequest, getMikroTikConfig, getMikroTikConfigForRouter } from '@/lib/mikrotik';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
 
 /**
@@ -9,12 +9,14 @@ export async function GET(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
 
   try {
-    const config = await getMikroTikConfig();
+    const { searchParams } = new URL(request.url);
+    const routerId = searchParams.get('router_id');
+    const config = routerId ? await getMikroTikConfigForRouter(routerId) : await getMikroTikConfig();
     if (!config.isConfigured) {
       return NextResponse.json({ success: false, error: 'Router not configured' }, { status: 400 });
     }
 
-    const { url, headers } = await buildMikroTikRequest('/rest/system/clock');
+    const { url, headers } = await buildMikroTikRequest('/rest/system/clock', routerId);
     const res = await fetch(url, { headers, signal: AbortSignal.timeout(5000) });
 
     if (!res.ok) {
@@ -57,8 +59,9 @@ export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));
     const timeZone = body.time_zone || 'Africa/Lagos';
+    const routerId = body.router_id || null;
 
-    const result = await syncRouterClockAndNtp(timeZone);
+    const result = await syncRouterClockAndNtp(timeZone, routerId);
 
     return NextResponse.json({
       success: result.success,

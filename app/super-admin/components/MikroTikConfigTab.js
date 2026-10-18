@@ -38,6 +38,9 @@ export default function MikroTikConfigTab({
   setPortalPushProgress = () => {},
   handlePushLoginPageWithProgress = () => {},
   portalPushing = false,
+  selectedRouterId = '',
+  setSelectedRouterId = () => {},
+  routersList = [],
 }) {
   const [showRebootModal, setShowRebootModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
@@ -52,7 +55,10 @@ export default function MikroTikConfigTab({
       const res = await fetch('/api/mikrotik/sync-clock', {
         method: 'POST',
         headers: adminHeaders(),
-        body: JSON.stringify({ time_zone: 'Africa/Lagos' }),
+        body: JSON.stringify({
+          time_zone: 'Africa/Lagos',
+          router_id: selectedRouterId || undefined,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -92,6 +98,76 @@ export default function MikroTikConfigTab({
 
   return (
           <div className="sa-tab-body">
+
+            {/* ── Router Target Context Banner ── */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(52, 168, 83, 0.08), rgba(59, 130, 246, 0.06))',
+                border: '1px solid rgba(52, 168, 83, 0.3)',
+                borderRadius: '14px',
+                padding: '14px 18px',
+                marginBottom: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '24px' }}>📡</span>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Active Configuration Target:
+                    <span style={{ color: selectedRouterId ? '#34A853' : '#A1A1AA' }}>
+                      {selectedRouterId
+                        ? (routersList.find(r => r.id === selectedRouterId)?.name || 'Custom Router')
+                        : 'Default / Primary Router (app_settings)'}
+                    </span>
+                    <span className={`sa-badge ${testResult?.connected ? 'sa-badge-success' : 'sa-badge-danger'}`} style={{ fontSize: '11px' }}>
+                      {testResult?.connected ? '● Online' : '○ Offline'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#8E8E93' }}>
+                    {selectedRouterId
+                      ? `Targeting ${routersList.find(r => r.id === selectedRouterId)?.ip_address || mikrotikForm.ip}:${routersList.find(r => r.id === selectedRouterId)?.port || mikrotikForm.port} • Auto Setup, Portal Push & Clock Sync execute on this router.`
+                      : 'All actions default to the primary environment router. Choose a specific router from the fleet to manage it.'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <select
+                  value={selectedRouterId}
+                  onChange={e => setSelectedRouterId(e.target.value)}
+                  style={{
+                    background: '#1A1A24',
+                    color: '#fff',
+                    border: '1px solid rgba(52, 168, 83, 0.4)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                  }}
+                >
+                  <option value="">🌐 Default / Primary Router</option>
+                  {routersList.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.status === 'online' ? '🟢' : '🔴'} {r.name} {r.locations?.name ? `(${r.locations.name})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="sa-btn-pill-small"
+                  onClick={() => handleTestMikrotik(false, selectedRouterId || null)}
+                  disabled={testLoading}
+                  style={{ background: 'rgba(52, 168, 83, 0.15)', color: '#34A853', borderColor: 'rgba(52, 168, 83, 0.4)' }}
+                >
+                  {testLoading ? 'Testing...' : '⚡ Test Target'}
+                </button>
+              </div>
+            </div>
 
             {/* ── Section 1: Router Connection ── */}
             <div className="sa-glass-card">

@@ -5,13 +5,13 @@ import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
 export async function POST(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
   try {
-    const { session_id } = await request.json();
+    const { session_id, router_id } = await request.json();
 
     if (!session_id) {
       return NextResponse.json({ error: 'Missing session_id' }, { status: 400 });
     }
 
-    await kickActiveSession(session_id);
+    await kickActiveSession(session_id, router_id || undefined);
     return NextResponse.json({ success: true, message: 'User disconnected' });
   } catch (error) {
     console.error('MikroTik kick-user error:', error.message);

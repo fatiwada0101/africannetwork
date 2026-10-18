@@ -3,34 +3,60 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
 
 /**
- * GET /api/mikrotik/polling/script — Returns a clean RouterOS .rsc script
+ * GET /api/mikrotik/polling/script?router_id=xxx — Returns a clean RouterOS .rsc script
  * that can be downloaded and imported into the router.
+ * If router_id is passed, uses that router's polling_secret.
  */
 export async function GET(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
 
   try {
-    // Get polling config
-    const { data: configData } = await supabaseAdmin
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'polling_config')
-      .maybeSingle();
+    const { searchParams } = new URL(request.url);
+    const routerId = searchParams.get('router_id');
 
-    const secret = configData?.value?.secret || 'MISSING_SECRET';
-    const interval = configData?.value?.interval || 10;
+    let secret = '';
+    let interval = 10;
+    let filename = 'asuk-poll-agent.rsc';
+    let routerName = 'MikroTik Router';
+
+    if (routerId) {
+      const { data: router } = await supabaseAdmin
+        .from('routers')
+        .select('name, polling_secret')
+        .eq('id', routerId)
+        .maybeSingle();
+
+      if (router?.polling_secret) {
+        secret = router.polling_secret;
+        routerName = router.name || 'Router';
+        const safeName = routerName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+        filename = `asuk-poll-${safeName}.rsc`;
+      }
+    }
+
+    if (!secret) {
+      // Fallback to app_settings polling config
+      const { data: configData } = await supabaseAdmin
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'polling_config')
+        .maybeSingle();
+
+      secret = configData?.value?.secret || 'MISSING_SECRET';
+      interval = configData?.value?.interval || 10;
+    }
 
     // Get the app URL from the request
     const url = new URL(request.url);
     const appUrl = `${url.protocol}//${url.host}/api/mikrotik/polling`;
 
-    const script = generateRouterOSScript(appUrl, secret, interval);
+    const script = generateRouterOSScript(appUrl, secret, interval, routerName);
 
     // Return as plain text with .rsc content type
     return new Response(script, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="asuk-poll-agent.rsc"',
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
@@ -39,8 +65,9 @@ export async function GET(request) {
   }
 }
 
-function generateRouterOSScript(appUrl, secret, interval) {
-  return `# African Network Polling Agent for MikroTik RouterOS v7+
+function generateRouterOSScript(appUrl, secret, interval, routerName = 'African Network Router') {
+  return `# African Network Polling Agent for ${routerName}
+# RouterOS v7+
 # Import this file via WinBox: System > Scripts or /import asuk-poll-agent.rsc
 
 # ---- Remove old script and scheduler if they exist ----
@@ -107,6 +134,6 @@ function generateRouterOSScript(appUrl, secret, interval) {
 /system scheduler add name="asuk-poll-schedule" interval=${interval}s on-event="/system script run asuk-poll-agent" policy=read,write,test,ftp
 
 :log info "African Network: Polling agent installed! Checking every ${interval}s."
-:put "Done! Router will check for new vouchers every ${interval} seconds."
+:put "Done! ${routerName} will check for new vouchers every ${interval} seconds."
 `;
 }

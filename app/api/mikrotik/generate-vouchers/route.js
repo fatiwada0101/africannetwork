@@ -26,6 +26,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch_id')?.trim();
+    const filterRouterId = searchParams.get('router_id')?.trim();
 
     if (batchId) {
       // Return all vouchers for this specific batch
@@ -40,10 +41,16 @@ export async function GET(request) {
     }
 
     // Return summary list of recent batches
-    const { data: batches, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('vouchers')
-      .select('batch_id, profile_name, price, data_limit, created_at, is_used, status')
-      .not('batch_id', 'is', null)
+      .select('batch_id, profile_name, price, data_limit, created_at, is_used, status, last_router_id, origin_location_id')
+      .not('batch_id', 'is', null);
+
+    if (filterRouterId) {
+      query = query.eq('last_router_id', filterRouterId);
+    }
+
+    const { data: batches, error } = await query
       .order('created_at', { ascending: false })
       .limit(500);
 
@@ -59,6 +66,8 @@ export async function GET(request) {
           price: Number(v.price) || 0,
           data_limit: v.data_limit || 'Unlimited',
           created_at: v.created_at,
+          router_id: v.last_router_id || null,
+          location_id: v.origin_location_id || null,
           total: 0,
           used: 0,
           available: 0,
@@ -105,6 +114,8 @@ export async function POST(request) {
       devices = 1,
       upload_speed = '12M',
       download_speed = '12M',
+      router_id = null,
+      location_id = null,
     } = body;
 
     const count = Math.min(Math.max(Number(quantity) || 1, 1), 100);
@@ -144,6 +155,22 @@ export async function POST(request) {
     let effectiveDevices = Number(devices) || 1;
     let expiryMode = 'elapsed';
     let hotspotUrl = 'asuktech.net';
+    let effectiveLocationId = location_id || null;
+
+    if (router_id) {
+      try {
+        const { data: r } = await supabaseAdmin
+          .from('routers')
+          .select('id, name, dns_name, location_id')
+          .eq('id', router_id)
+          .maybeSingle();
+        if (r) {
+          if (r.dns_name) hotspotUrl = r.dns_name.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+          if (r.location_id && !effectiveLocationId) effectiveLocationId = r.location_id;
+        }
+      } catch (e) {}
+    }
+
     try {
       const { data: hsData } = await supabaseAdmin
         .from('app_settings')
@@ -155,13 +182,15 @@ export async function POST(request) {
         expiryMode = hsData.value.expiry_mode || 'elapsed';
       }
 
-      const { data: mtData } = await supabaseAdmin
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'mikrotik')
-        .maybeSingle();
-      if (mtData?.value?.hotspot_url) {
-        hotspotUrl = mtData.value.hotspot_url.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+      if (!router_id) {
+        const { data: mtData } = await supabaseAdmin
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'mikrotik')
+          .maybeSingle();
+        if (mtData?.value?.hotspot_url) {
+          hotspotUrl = mtData.value.hotspot_url.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+        }
       }
     } catch (e) {}
 
@@ -212,6 +241,7 @@ export async function POST(request) {
           rate_limit: `${upload_speed}/${download_speed}`,
           expiry_mode: expiryMode,
           limit_bytes_total: limitBytesTotal,
+          routerId: router_id,
         });
 
         // Insert into Supabase vouchers table
@@ -227,6 +257,8 @@ export async function POST(request) {
             batch_id: batchId,
             data_limit: data_limit || 'unlimited',
             serial_number: serialNum,
+            last_router_id: router_id || null,
+            origin_location_id: effectiveLocationId || null,
           })
           .select('id')
           .single();
@@ -239,6 +271,7 @@ export async function POST(request) {
           code,
           serial_number: serialNum,
           router_id: routerResult.routerId,
+          target_router_id: router_id,
           profile: routerResult.profile,
           expiry: expiryLabel,
           data_limit: data_limit || 'Unlimited',
@@ -279,45 +312,50 @@ export async function POST(request) {
 
 /**
  * DELETE — Delete individual voucher or entire batch
- * Body: { voucher_id: "uuid" } or { batch_id: "BATCH-..." }
+ * Body: { voucher_id: "uuid" } or { batch_id: "BATCH-..." } and optionally { router_id: "uuid" }
  */
 export async function DELETE(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
 
   try {
-    const { voucher_id, batch_id } = await request.json();
+    const { voucher_id, batch_id, router_id } = await request.json();
 
     if (!voucher_id && !batch_id) {
       return NextResponse.json({ error: 'Either voucher_id or batch_id is required' }, { status: 400 });
     }
 
-    // Fetch voucher codes to remove from router
+    // Fetch voucher codes and their target router to remove from the correct router
     let voucherCodes = [];
+    let targetRouterId = router_id || null;
     if (batch_id) {
       const { data: batchVouchers } = await supabaseAdmin
         .from('vouchers')
-        .select('id, voucher_code')
+        .select('id, voucher_code, last_router_id')
         .eq('batch_id', batch_id);
       voucherCodes = (batchVouchers || []).map(v => v.voucher_code).filter(Boolean);
+      if (!targetRouterId && batchVouchers?.[0]?.last_router_id) {
+        targetRouterId = batchVouchers[0].last_router_id;
+      }
     } else {
       const { data: single } = await supabaseAdmin
         .from('vouchers')
-        .select('id, voucher_code')
+        .select('id, voucher_code, last_router_id')
         .eq('id', voucher_id)
         .maybeSingle();
       if (single?.voucher_code) voucherCodes = [single.voucher_code];
+      if (!targetRouterId && single?.last_router_id) targetRouterId = single.last_router_id;
     }
 
-    // Best-effort: remove from MikroTik router
+    // Best-effort: remove from MikroTik router (target the correct one)
     let routerRemoved = 0;
     if (voucherCodes.length > 0) {
       try {
-        const routerUsers = await getHotspotUsers();
+        const routerUsers = await getHotspotUsers(targetRouterId || undefined);
         for (const code of voucherCodes) {
           const user = (routerUsers || []).find(u => u.name === code);
           if (user && user['.id']) {
             try {
-              await deleteHotspotUser(user['.id']);
+              await deleteHotspotUser(user['.id'], targetRouterId || undefined);
               routerRemoved++;
             } catch {}
           }

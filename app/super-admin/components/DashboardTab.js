@@ -19,6 +19,9 @@ export default function DashboardTab({
   flutterwaveForm = {},
   copyCode = () => {},
   copiedPin = '',
+  selectedRouterId = '',
+  setSelectedRouterId = () => {},
+  routersList = [],
 }) {
   return (
           <div className="sa-tab-body">
@@ -121,7 +124,18 @@ export default function DashboardTab({
               <div className="sa-glass-card">
                 <div className="sa-card-header">
                   <div>
-                    <h3 className="sa-card-title">Router Hardware Health</h3>
+                    <h3 className="sa-card-title">
+                      Router Hardware Health
+                      {selectedRouterId ? (
+                        <span className="sa-badge sa-badge-purple" style={{ marginLeft: 8, fontSize: 11 }}>
+                          {routersList.find(r => r.id === selectedRouterId)?.name || 'Target Router'}
+                        </span>
+                      ) : (
+                        <span className="sa-badge sa-badge-muted" style={{ marginLeft: 8, fontSize: 11 }}>
+                          Primary / All
+                        </span>
+                      )}
+                    </h3>
                     <p className="sa-card-sub">Live RouterOS telemetry</p>
                   </div>
                   <button className="sa-btn-pill-small" onClick={() => handleTestMikrotik(false)} disabled={testLoading}>
