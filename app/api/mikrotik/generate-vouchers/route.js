@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createOrQueueHotspotUser, deleteHotspotUser, getHotspotUsers } from '@/lib/mikrotik';
+import { createOrQueueHotspotUser, deleteHotspotUser, getHotspotUsers, calculateExpiresAt } from '@/lib/mikrotik';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
 import { validateBody, voucherGenerateSchema } from '@/lib/schemas';
@@ -253,6 +253,7 @@ export async function POST(request) {
             price: Number(price),
             is_used: false,
             duration: limitUptime,
+            expires_at: calculateExpiresAt(limitUptime),
             status: 'active',
             batch_id: batchId,
             data_limit: data_limit || 'unlimited',

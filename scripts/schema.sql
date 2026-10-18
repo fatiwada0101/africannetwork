@@ -615,3 +615,74 @@ REVOKE ALL ON FUNCTION public.complete_monnify_voucher(TEXT, UUID) FROM PUBLIC, 
 GRANT EXECUTE ON FUNCTION public.settle_monnify_payment(TEXT, TEXT, UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION public.claim_monnify_fallback(TEXT, UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION public.complete_monnify_voucher(TEXT, UUID) TO service_role;
+
+-- Hardened voucher expiration procedure (supports wall-clock bruteforce for all durations)
+CREATE OR REPLACE FUNCTION public.expire_outdated_vouchers()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- A. Expire fallback vouchers
+  UPDATE public.fallback_vouchers
+  SET status = 'expired', is_used = true
+  WHERE status != 'expired'
+    AND ((expires_at IS NOT NULL AND expires_at < NOW()) OR (created_at < NOW() - INTERVAL '30 days'));
+
+  -- B. Expire active vouchers with explicit expires_at in the past
+  UPDATE public.vouchers
+  SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND expires_at IS NOT NULL AND expires_at < NOW();
+
+  -- C. Bruteforce wall-clock expiry based on duration string & elapsed time
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%1h%' OR duration ILIKE '%1 hour%' OR profile_name ILIKE '%1h%' OR profile_name ILIKE '%1 hour%')
+    AND created_at < NOW() - INTERVAL '1 hour 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%2h%' OR duration ILIKE '%2 hour%' OR profile_name ILIKE '%2h%' OR profile_name ILIKE '%2 hour%')
+    AND created_at < NOW() - INTERVAL '2 hours 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%3h%' OR duration ILIKE '%3 hour%' OR profile_name ILIKE '%3h%' OR profile_name ILIKE '%3 hour%')
+    AND created_at < NOW() - INTERVAL '3 hours 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%6h%' OR duration ILIKE '%6 hour%' OR profile_name ILIKE '%6h%' OR profile_name ILIKE '%6 hour%')
+    AND created_at < NOW() - INTERVAL '6 hours 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%12h%' OR duration ILIKE '%12 hour%' OR profile_name ILIKE '%12h%' OR profile_name ILIKE '%12 hour%')
+    AND created_at < NOW() - INTERVAL '12 hours 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (
+      duration ILIKE '%24h%' OR duration ILIKE '%1d%' OR duration ILIKE '%daily%' OR duration ILIKE '%1 day%'
+      OR profile_name ILIKE '%24h%' OR profile_name ILIKE '%1d%' OR profile_name ILIKE '%daily%' OR profile_name ILIKE '%1 day%'
+    ) AND created_at < NOW() - INTERVAL '24 hours 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%2d%' OR duration ILIKE '%2 day%' OR profile_name ILIKE '%2d%' OR profile_name ILIKE '%2 day%')
+    AND created_at < NOW() - INTERVAL '48 hours 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%3d%' OR duration ILIKE '%3 day%' OR profile_name ILIKE '%3d%' OR profile_name ILIKE '%3 day%')
+    AND created_at < NOW() - INTERVAL '72 hours 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%7d%' OR duration ILIKE '%week%' OR profile_name ILIKE '%7d%' OR profile_name ILIKE '%week%')
+    AND created_at < NOW() - INTERVAL '7 days 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%14d%' OR duration ILIKE '%2w%' OR profile_name ILIKE '%14d%' OR profile_name ILIKE '%2w%')
+    AND created_at < NOW() - INTERVAL '14 days 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND (duration ILIKE '%30d%' OR duration ILIKE '%month%' OR profile_name ILIKE '%30d%' OR profile_name ILIKE '%month%')
+    AND created_at < NOW() - INTERVAL '30 days 5 minutes';
+
+  UPDATE public.vouchers SET status = 'expired', is_used = true
+  WHERE status != 'expired' AND created_at < NOW() - INTERVAL '30 days';
+END;
+$$;
+
