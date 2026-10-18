@@ -105,14 +105,24 @@ export async function PUT(request) {
     if (fields.name !== undefined) updates.name = fields.name.trim();
     if (fields.identity !== undefined) updates.identity = fields.identity.trim();
     if (fields.location_id !== undefined) updates.location_id = fields.location_id || null;
-    if (fields.connection_mode !== undefined) updates.connection_mode = fields.connection_mode;
-    if (fields.ip_address !== undefined) updates.ip_address = fields.ip_address?.trim() || null;
-    if (fields.port !== undefined) updates.port = parseInt(fields.port, 10);
-    if (fields.username !== undefined) updates.username = fields.username?.trim();
+    if (fields.connection_mode !== undefined) updates.connection_mode = fields.connection_mode === 'polling' ? 'polling' : 'direct';
+
+    if (fields.ip_address !== undefined || fields.port !== undefined) {
+      const sanitized = sanitizeMikroTikConfig({
+        ip: fields.ip_address !== undefined ? fields.ip_address : undefined,
+        port: fields.port !== undefined ? fields.port : undefined,
+        use_ssl: fields.use_ssl,
+        hotspot_url: fields.dns_name,
+      });
+      if (fields.ip_address !== undefined) updates.ip_address = sanitized.ip || null;
+      if (fields.port !== undefined) updates.port = parseInt(sanitized.port, 10) || 443;
+    }
+
+    if (fields.username !== undefined) updates.username = fields.username?.trim() || 'admin';
     if (fields.password !== undefined) updates.password = fields.password;
     if (fields.use_ssl !== undefined) updates.use_ssl = Boolean(fields.use_ssl);
-    if (fields.dns_name !== undefined) updates.dns_name = fields.dns_name?.trim();
-    if (fields.hotspot_server_name !== undefined) updates.hotspot_server_name = fields.hotspot_server_name?.trim();
+    if (fields.dns_name !== undefined) updates.dns_name = fields.dns_name?.trim() || 'asuktech.net';
+    if (fields.hotspot_server_name !== undefined) updates.hotspot_server_name = fields.hotspot_server_name?.trim() || 'hotspot1';
     if (fields.is_active !== undefined) updates.is_active = Boolean(fields.is_active);
 
     const { data: updated, error } = await supabaseAdmin

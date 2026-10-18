@@ -30,9 +30,11 @@ export async function POST(request) {
     const body = await request.json().catch(() => ({}));
     const { name, address, latitude, longitude, coverage_radius_meters, contact_phone } = body;
 
-    if (!name || latitude === undefined || longitude === undefined) {
+    const parsedLat = parseFloat(latitude);
+    const parsedLng = parseFloat(longitude);
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
       return NextResponse.json(
-        { success: false, error: 'Name, latitude, and longitude are required' },
+        { success: false, error: 'Valid numerical latitude and longitude coordinates are required' },
         { status: 400 }
       );
     }
@@ -42,8 +44,8 @@ export async function POST(request) {
       .insert({
         name: name.trim(),
         address: address ? address.trim() : null,
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
+        latitude: parsedLat,
+        longitude: parsedLng,
         coverage_radius_meters: parseInt(coverage_radius_meters, 10) || 150,
         contact_phone: contact_phone ? contact_phone.trim() : null,
         is_active: true,
@@ -76,9 +78,9 @@ export async function PUT(request) {
     const updates = {};
     if (name !== undefined) updates.name = name.trim();
     if (address !== undefined) updates.address = address?.trim() || null;
-    if (latitude !== undefined) updates.latitude = parseFloat(latitude);
-    if (longitude !== undefined) updates.longitude = parseFloat(longitude);
-    if (coverage_radius_meters !== undefined) updates.coverage_radius_meters = parseInt(coverage_radius_meters, 10);
+    if (latitude !== undefined && !isNaN(parseFloat(latitude))) updates.latitude = parseFloat(latitude);
+    if (longitude !== undefined && !isNaN(parseFloat(longitude))) updates.longitude = parseFloat(longitude);
+    if (coverage_radius_meters !== undefined) updates.coverage_radius_meters = parseInt(coverage_radius_meters, 10) || 150;
     if (contact_phone !== undefined) updates.contact_phone = contact_phone?.trim() || null;
     if (is_active !== undefined) updates.is_active = Boolean(is_active);
     updates.updated_at = new Date().toISOString();

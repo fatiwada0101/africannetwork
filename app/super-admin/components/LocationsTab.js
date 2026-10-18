@@ -14,12 +14,26 @@ import {
   ZapIcon,
 } from '../../components/Icons';
 
+function formatLastSeen(ts) {
+  if (!ts) return 'Never';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return 'Never';
+  const now = new Date();
+  const diffMs = now - d;
+  if (diffMs < 60000) return 'Just now';
+  if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`;
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) return `Today, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function LocationsTab({
   adminHeaders,
   showToast,
   selectedRouterId = '',
   onSelectRouter = () => {},
   handleTestMikrotik = () => {},
+  onRouterChange = () => {},
 }) {
   const [locations, setLocations] = useState([]);
   const [routers, setRouters] = useState([]);
@@ -153,6 +167,7 @@ export default function LocationsTab({
       setShowLocationModal(false);
       setEditingLocation(null);
       fetchData();
+      onRouterChange?.();
     } catch (err) {
       showToast?.('Failed saving location: ' + err.message, 'error');
     }
@@ -170,6 +185,7 @@ export default function LocationsTab({
 
       showToast?.('Location deleted', 'success');
       fetchData();
+      onRouterChange?.();
     } catch (err) {
       showToast?.('Failed deleting location: ' + err.message, 'error');
     }
@@ -195,6 +211,7 @@ export default function LocationsTab({
       setShowRouterModal(false);
       setEditingRouter(null);
       fetchData();
+      onRouterChange?.();
     } catch (err) {
       showToast?.('Failed saving router: ' + err.message, 'error');
     }
@@ -212,6 +229,7 @@ export default function LocationsTab({
 
       showToast?.('Router removed', 'success');
       fetchData();
+      onRouterChange?.();
     } catch (err) {
       showToast?.('Failed removing router: ' + err.message, 'error');
     }
@@ -585,13 +603,9 @@ export default function LocationsTab({
                         </span>
                       </td>
                       <td style={{ padding: '14px', verticalAlign: 'middle' }}>
-                        {r.last_seen_at ? (
-                          <span style={{ fontSize: '12px', color: '#D4D4D8' }}>
-                            {new Date(r.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '12px', color: '#71717A' }}>Never</span>
-                        )}
+                        <span style={{ fontSize: '12px', color: r.last_seen_at ? '#D4D4D8' : '#71717A' }}>
+                          {formatLastSeen(r.last_seen_at)}
+                        </span>
                       </td>
                       <td style={{ padding: '14px', verticalAlign: 'middle', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>

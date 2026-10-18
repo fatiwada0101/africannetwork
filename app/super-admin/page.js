@@ -2355,6 +2355,7 @@ export default function SuperAdminPage() {
               setActiveTab('mikrotik');
             }}
             handleTestMikrotik={handleTestMikrotik}
+            onRouterChange={fetchRoutersList}
           />
         )}
 
