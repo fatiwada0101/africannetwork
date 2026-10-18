@@ -884,8 +884,29 @@ export default function LocationsTab({
                   step="25"
                   value={locForm.coverage_radius_meters}
                   onChange={(e) => setLocForm({ ...locForm, coverage_radius_meters: e.target.value })}
-                  style={{ width: '100%', accentColor: '#34A853', cursor: 'pointer' }}
+                  style={{ width: '100%', accentColor: '#34A853', cursor: 'pointer', marginBottom: '8px' }}
                 />
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[75, 150, 300, 500, 1000].map((radius) => (
+                    <button
+                      key={radius}
+                      type="button"
+                      onClick={() => setLocForm({ ...locForm, coverage_radius_meters: radius })}
+                      style={{
+                        background: Number(locForm.coverage_radius_meters) === radius ? 'rgba(52, 168, 83, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                        border: Number(locForm.coverage_radius_meters) === radius ? '1px solid #34A853' : '1px solid rgba(255, 255, 255, 0.1)',
+                        color: Number(locForm.coverage_radius_meters) === radius ? '#4ADE80' : '#A1A1AA',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {radius === 1000 ? '1 km' : `${radius}m`} {radius === 150 ? '★' : ''}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>

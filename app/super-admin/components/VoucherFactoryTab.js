@@ -33,14 +33,20 @@ export default function VoucherFactoryTab({
     devices: 1,
     upload_speed: '12M',
     download_speed: '12M',
-    router_id: selectedRouterId || '',
+    router_id: selectedRouterId || routersList[0]?.id || '',
   });
 
   useEffect(() => {
     if (selectedRouterId) {
       setVoucherGen((prev) => ({ ...prev, router_id: selectedRouterId }));
+    } else if (routersList && routersList.length > 0) {
+      const defaultId = routersList[0].id;
+      setVoucherGen((prev) => ({ ...prev, router_id: prev.router_id || defaultId }));
+      setSelectedRouterId(defaultId);
     }
-  }, [selectedRouterId]);
+  }, [selectedRouterId, routersList, setSelectedRouterId]);
+
+  const activeTargetRouter = routersList?.find(r => r.id === (voucherGen.router_id || selectedRouterId)) || (routersList && routersList.length > 0 ? routersList[0] : null);
   const [voucherFactoryTab, setVoucherFactoryTab] = useState('generator'); // 'generator' | 'batches'
   const [batchHistory, setBatchHistory] = useState([]);
   const [batchHistoryLoading, setBatchHistoryLoading] = useState(false);
@@ -432,6 +438,115 @@ export default function VoucherFactoryTab({
                     <span className="sa-badge sa-badge-purple"><TicketIcon size={14} color="#34A853" /> Factory v2</span>
                   </div>
 
+                  {/* Step 1: Select Target Router & Coverage Location */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(24, 24, 27, 0.95) 0%, rgba(39, 39, 42, 0.8) 100%)',
+                    border: '1px solid rgba(124, 58, 237, 0.4)',
+                    borderRadius: 14,
+                    padding: '16px 20px',
+                    marginBottom: 18,
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{
+                          background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
+                          color: '#FFFFFF',
+                          fontSize: 11,
+                          fontWeight: 800,
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          letterSpacing: '0.05em',
+                          textTransform: 'uppercase',
+                        }}>
+                          Step 1
+                        </span>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span>🎯 Target MikroTik Router</span>
+                            <span style={{ fontSize: 11, color: '#A1A1AA', fontWeight: 500 }}>(Default: First Registered Router)</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                            Select the specific router to provision vouchers to. The first router is automatically pre-selected.
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Active Router Pill */}
+                      {activeTargetRouter && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          background: 'rgba(0, 0, 0, 0.5)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          fontSize: 12,
+                        }}>
+                          <span style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: activeTargetRouter.status === 'online' ? '#22C55E' : '#EF4444',
+                            boxShadow: activeTargetRouter.status === 'online' ? '0 0 8px rgba(34, 197, 94, 0.7)' : 'none',
+                          }} />
+                          <span style={{ fontWeight: 700, color: '#FFFFFF' }}>{activeTargetRouter.name}</span>
+                          {activeTargetRouter.locations?.name && (
+                            <span style={{ color: '#A1A1AA' }}>• 📍 {activeTargetRouter.locations.name}</span>
+                          )}
+                          <span style={{
+                            fontSize: 10,
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            background: activeTargetRouter.connection_mode === 'polling' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                            color: activeTargetRouter.connection_mode === 'polling' ? '#FACC15' : '#60A5FA',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                          }}>
+                            {activeTargetRouter.connection_mode === 'polling' ? 'Polling' : 'Direct REST'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                      <select
+                        id="target-router-select"
+                        value={voucherGen.router_id || selectedRouterId || (routersList[0]?.id || '')}
+                        onChange={(e) => {
+                          const newId = e.target.value;
+                          setVoucherGen(prev => ({ ...prev, router_id: newId }));
+                          setSelectedRouterId(newId);
+                        }}
+                        style={{
+                          width: '100%',
+                          background: '#0F0F12',
+                          color: '#FFFFFF',
+                          border: '1px solid rgba(124, 58, 237, 0.45)',
+                          borderRadius: 10,
+                          padding: '12px 16px',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          outline: 'none',
+                        }}
+                      >
+                        {routersList && routersList.length > 0 ? (
+                          routersList.map((r, idx) => (
+                            <option key={r.id} value={r.id} style={{ background: '#18181B', color: '#FFFFFF' }}>
+                              {r.status === 'online' ? '🟢' : '🔴'} {r.name} {r.locations?.name ? `— 📍 ${r.locations.name}` : ''} {idx === 0 ? '(Default Primary Router)' : ''} • {r.ip_address || 'Cloud Agent'} ({r.connection_mode})
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" style={{ background: '#18181B', color: '#FFFFFF' }}>
+                            🌐 Default / Primary System MikroTik Router
+                          </option>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Plan Preset Quick Loader */}
                   <div style={{
                     background: 'linear-gradient(135deg, rgba(114, 87, 255, 0.08), rgba(59, 130, 246, 0.06))',
@@ -477,21 +592,6 @@ export default function VoucherFactoryTab({
 
                   {/* Form Grid */}
                   <div className="sa-form-grid-3">
-                    <div className="sa-field-box">
-                      <label>Target Router &amp; Location</label>
-                      <select
-                        value={voucherGen.router_id || ''}
-                        onChange={e => setVoucherGen({ ...voucherGen, router_id: e.target.value })}
-                        style={{ fontWeight: 600 }}
-                      >
-                        <option value="">🌐 Default / Primary Router</option>
-                        {routersList?.map(r => (
-                          <option key={r.id} value={r.id}>
-                            {r.status === 'online' ? '🟢' : '🔴'} {r.name} {r.locations?.name ? `(${r.locations.name})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
 
                     <div className="sa-field-box">
                       <label>Quantity (1-100)</label>

@@ -389,7 +389,11 @@ export default function SuperAdminPage() {
       const res = await fetch('/api/super-admin/routers/list', { headers: adminHeaders() });
       if (res.ok) {
         const d = await res.json();
-        setRoutersList(d.routers || []);
+        const list = d.routers || [];
+        setRoutersList(list);
+        if (list.length > 0) {
+          setSelectedRouterId(prev => prev || list[0].id);
+        }
       }
     } catch (err) { console.error('Routers list fetch error:', err); }
   }, [token, adminHeaders]);
@@ -444,7 +448,11 @@ export default function SuperAdminPage() {
 
       if (routersRes && routersRes.ok) {
         const rd = await routersRes.json();
-        setRoutersList(rd.routers || []);
+        const list = rd.routers || [];
+        setRoutersList(list);
+        if (list.length > 0) {
+          setSelectedRouterId(prev => prev || list[0].id);
+        }
       }
     } catch (err) { console.error('Core data fetch error:', err); }
     finally { setLoading(false); }

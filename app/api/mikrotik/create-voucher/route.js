@@ -8,7 +8,7 @@ export async function POST(request) {
   if (!(await validateAdminAuth(request))) return unauthorizedResponse();
 
   try {
-    const { plan_id, plan_name, price, duration, custom_code } = await request.json();
+    const { plan_id, plan_name, price, duration, custom_code, router_id } = await request.json();
 
     if (!plan_name || !price) {
       return NextResponse.json({ error: 'Missing plan_name or price' }, { status: 400 });
@@ -68,6 +68,7 @@ export async function POST(request) {
       shared_users: planDevices,
       rate_limit: rateLimit,
       expiry_mode: expiryMode,
+      routerId: router_id || undefined,
     });
 
     // Calculate expiration timestamp
@@ -85,6 +86,7 @@ export async function POST(request) {
         duration: limitDuration,
         expires_at: expiresAt,
         status: 'active',
+        last_router_id: router_id || null,
       });
 
     return NextResponse.json({
