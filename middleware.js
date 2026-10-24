@@ -12,16 +12,16 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 // Rate limit profiles: [maxRequests, windowMs]
 const RATE_LIMITS = [
-  { pattern: '/api/super-admin/auth',    max: 5,  window: 60_000, prefix: 'auth'      },
-  { pattern: '/api/purchase',            max: 10, window: 60_000, prefix: 'purchase'  },
-  { pattern: '/api/wallet',              max: 10, window: 60_000, prefix: 'wallet'    },
-  { pattern: '/api/webhook',             max: 60, window: 60_000, prefix: 'webhook'   },
-  { pattern: '/api/mikrotik/heartbeat',  max: 60, window: 60_000, prefix: 'heartbeat' },
-  { pattern: '/api/mikrotik/polling',    max: 60, window: 60_000, prefix: 'polling'   },
-  { pattern: '/api/mikrotik',            max: 20, window: 60_000, prefix: 'mikrotik'  },
-  { pattern: '/api/super-admin',         max: 30, window: 60_000, prefix: 'admin'     },
-  { pattern: '/api/cron',                max: 10, window: 60_000, prefix: 'cron'      },
-  { pattern: '/api',                     max: 30, window: 60_000, prefix: 'api'       }, // default fallback
+  { pattern: '/api/super-admin/auth',    max: 5,   window: 60_000, prefix: 'auth'      },
+  { pattern: '/api/purchase',            max: 10,  window: 60_000, prefix: 'purchase'  },
+  { pattern: '/api/wallet',              max: 10,  window: 60_000, prefix: 'wallet'    },
+  { pattern: '/api/webhook',             max: 60,  window: 60_000, prefix: 'webhook'   },
+  { pattern: '/api/mikrotik/heartbeat',  max: 60,  window: 60_000, prefix: 'heartbeat' },
+  { pattern: '/api/mikrotik/polling',    max: 60,  window: 60_000, prefix: 'polling'   },
+  { pattern: '/api/mikrotik',            max: 120, window: 60_000, prefix: 'mikrotik'  },
+  { pattern: '/api/super-admin',         max: 120, window: 60_000, prefix: 'admin'     },
+  { pattern: '/api/cron',                max: 10,  window: 60_000, prefix: 'cron'      },
+  { pattern: '/api',                     max: 60,  window: 60_000, prefix: 'api'       }, // default fallback
 ];
 
 // Routes exempt from CSRF protection

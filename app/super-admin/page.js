@@ -120,6 +120,7 @@ export default function SuperAdminPage() {
   const [selectedRouterId, setSelectedRouterId] = useState('');
   // Store the global/default mikrotik config so we can restore it when switching back
   const globalMikrotikConfigRef = useRef(null);
+  const prevSelectedRouterIdRef = useRef(null);
 
   // MikroTik Config
   const [mikrotikForm, setMikrotikForm] = useState({
@@ -576,14 +577,16 @@ export default function SuperAdminPage() {
           showToast(data.error ? `⚠️ ${data.error}` : '⚠️ Connection failed');
         }
       }
-      fetchRoutersList();
+      if (targetRouterId && typeof data.connected === 'boolean') {
+        setRoutersList(prev => prev.map(r => r.id === targetRouterId ? { ...r, status: data.connected ? 'online' : 'offline' } : r));
+      }
     } catch (err) {
       const isTimeout = err.name === 'TimeoutError' || err.message?.includes('timeout');
       const msg = isTimeout ? 'Connection timed out after 10s. Check router IP and port.' : err.message;
       setTestResult({ connected: false, error: msg });
       if (!silent) showToast(`Network error: ${msg}`);
     } finally { setTestLoading(false); }
-  }, [adminHeaders, selectedRouterId, fetchRoutersList, showToast]);
+  }, [adminHeaders, selectedRouterId, showToast]);
 
   const handleRestartMikrotik = useCallback(async () => {
     setRebootLoading(true);
@@ -697,9 +700,13 @@ export default function SuperAdminPage() {
       }));
     }
 
-    handleTestMikrotik(true, selectedRouterId);
+    // Only run connection test when selectedRouterId actually changes, avoiding refetch loops
+    if (prevSelectedRouterIdRef.current !== selectedRouterId) {
+      prevSelectedRouterIdRef.current = selectedRouterId;
+      handleTestMikrotik(true, selectedRouterId);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authed, token, selectedRouterId, routersList]);
+  }, [authed, token, selectedRouterId, routersList, handleTestMikrotik]);
 
   // Auto-recovery polling: when router is offline, re-check every 30s until it comes back
   useEffect(() => {
@@ -708,6 +715,20 @@ export default function SuperAdminPage() {
     if (testResult?.connected !== false) return;
     // Don't poll during active reboots (handled by handleRestartMikrotik's own timers)
     if (rebootLoading) return;
+
+    // Do NOT auto-poll if failure is due to invalid credentials or rate limiting
+    const errLower = (testResult?.error || '').toLowerCase();
+    if (
+      errLower.includes('credential') ||
+      errLower.includes('password') ||
+      errLower.includes('unauthorized') ||
+      errLower.includes('401') ||
+      errLower.includes('too many requests') ||
+      errLower.includes('slow down') ||
+      errLower.includes('429')
+    ) {
+      return;
+    }
 
     const recoveryInterval = setInterval(async () => {
       try {
@@ -723,7 +744,9 @@ export default function SuperAdminPage() {
         if (data.connected) {
           // Router recovered! Update state and notify
           setTestResult(data);
-          fetchRoutersList();
+          if (targetRouterId) {
+            setRoutersList(prev => prev.map(r => r.id === targetRouterId ? { ...r, status: 'online' } : r));
+          }
           fetchCoreData();
           const idInfo = data.identity || data.router?.model || '';
           showToast(`🟢 Router back online! ${idInfo ? `(${idInfo})` : ''} Auto-recovery detected.`);
@@ -735,7 +758,7 @@ export default function SuperAdminPage() {
     }, 30000);
 
     return () => clearInterval(recoveryInterval);
-  }, [authed, token, testResult?.connected, rebootLoading, selectedRouterId, adminHeaders, fetchRoutersList, fetchCoreData, showToast]);
+  }, [authed, token, testResult?.connected, testResult?.error, rebootLoading, selectedRouterId, adminHeaders, fetchCoreData, showToast]);
 
   // Tab-specific data loading
   useEffect(() => {
