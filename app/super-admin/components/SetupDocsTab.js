@@ -221,6 +221,7 @@ export default function SetupDocsTab({
   routersList = [],
   selectedRouterId = '',
   pollingConfig = {},
+  onNavigateTab = null,
 }) {
   const [activeGuide, setActiveGuide] = useState('overview');
   const [apiPassword, setApiPassword] = useState('AfricanNet2026!');
@@ -251,6 +252,104 @@ export default function SetupDocsTab({
   const [newRouterVpsPort, setNewRouterVpsPort] = useState(defaultNextVpsPort);
   const [newRouterPublicKey, setNewRouterPublicKey] = useState('');
   const [vpsPublicKey, setVpsPublicKey] = useState('');
+  const [savedPresets, setSavedPresets] = useState([]);
+  const [activePresetId, setActivePresetId] = useState('custom');
+  const [presetFeedback, setPresetFeedback] = useState('');
+
+  // ── Auto-load persisted router configuration & saved presets on mount ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      // 1. Load saved presets list
+      const savedRaw = localStorage.getItem('an_router_deployment_presets');
+      if (savedRaw) {
+        const parsed = JSON.parse(savedRaw);
+        if (Array.isArray(parsed)) setSavedPresets(parsed);
+      }
+      // 2. Load current working draft
+      const draftRaw = localStorage.getItem('an_current_new_router_config');
+      if (draftRaw) {
+        const d = JSON.parse(draftRaw);
+        if (d.name) setNewRouterName(d.name);
+        if (d.vpnIp) setNewRouterVpnIp(d.vpnIp);
+        if (d.vpsPort) setNewRouterVpsPort(d.vpsPort);
+        if (d.password) setApiPassword(d.password);
+        if (d.routerPublicKey) setNewRouterPublicKey(d.routerPublicKey);
+        if (d.vpsPublicKey) setVpsPublicKey(d.vpsPublicKey);
+      }
+    } catch (e) {
+      console.warn('Error restoring router config from localStorage:', e);
+    }
+  }, []);
+
+  // ── Auto-save current working configuration to localStorage on change ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const config = {
+        name: newRouterName,
+        vpnIp: newRouterVpnIp,
+        vpsPort: newRouterVpsPort,
+        password: apiPassword,
+        routerPublicKey: newRouterPublicKey,
+        vpsPublicKey: vpsPublicKey,
+        updatedAt: Date.now(),
+      };
+      localStorage.setItem('an_current_new_router_config', JSON.stringify(config));
+    } catch (e) {}
+  }, [newRouterName, newRouterVpnIp, newRouterVpsPort, apiPassword, newRouterPublicKey, vpsPublicKey]);
+
+  // Save current configuration as a permanent named preset
+  const handleSaveAsPreset = () => {
+    const name = (newRouterName || `Branch Router ${nextRouterNumber}`).trim();
+    const newPreset = {
+      id: 'preset_' + Date.now(),
+      name,
+      vpnIp: newRouterVpnIp || defaultNextVpnIp,
+      vpsPort: newRouterVpsPort || defaultNextVpsPort,
+      password: apiPassword || 'AfricanNet2026!',
+      routerPublicKey: newRouterPublicKey || '',
+      vpsPublicKey: vpsPublicKey || '',
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [...savedPresets.filter(p => p.name !== name), newPreset];
+    setSavedPresets(updated);
+    setActivePresetId(newPreset.id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('an_router_deployment_presets', JSON.stringify(updated));
+    }
+    setPresetFeedback(`Saved preset "${name}"! Available in Locations & Fleet.`);
+    setTimeout(() => setPresetFeedback(''), 4000);
+  };
+
+  // Load a saved preset into the generator
+  const handleSelectPreset = (presetId) => {
+    setActivePresetId(presetId);
+    if (presetId === 'custom') return;
+    const p = savedPresets.find(item => item.id === presetId);
+    if (p) {
+      if (p.name) setNewRouterName(p.name);
+      if (p.vpnIp) setNewRouterVpnIp(p.vpnIp);
+      if (p.vpsPort) setNewRouterVpsPort(p.vpsPort);
+      if (p.password) setApiPassword(p.password);
+      if (p.routerPublicKey !== undefined) setNewRouterPublicKey(p.routerPublicKey);
+      if (p.vpsPublicKey !== undefined) setVpsPublicKey(p.vpsPublicKey);
+      setPresetFeedback(`Loaded preset "${p.name}" (Port ${p.vpsPort})`);
+      setTimeout(() => setPresetFeedback(''), 3000);
+    }
+  };
+
+  // Delete a saved preset
+  const handleDeletePreset = (presetId) => {
+    const updated = savedPresets.filter(p => p.id !== presetId);
+    setSavedPresets(updated);
+    setActivePresetId('custom');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('an_router_deployment_presets', JSON.stringify(updated));
+    }
+    setPresetFeedback('Preset removed.');
+    setTimeout(() => setPresetFeedback(''), 3000);
+  };
 
   // Keep defaults updated when routersList loads
   useEffect(() => {
@@ -1767,6 +1866,108 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
               </div>
             </div>
 
+            {/* ── Saved Presets & Dropdown Bar ── */}
+            <div style={{
+              background: '#0B0F19',
+              border: '1px solid #1E293B',
+              borderRadius: 10,
+              padding: '12px 16px',
+              marginBottom: 18,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
+                <span style={{ fontSize: 14 }}>📁</span>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#E2E8F0', whiteSpace: 'nowrap' }}>
+                  Saved Router Presets:
+                </label>
+                <select
+                  value={activePresetId}
+                  onChange={e => handleSelectPreset(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: '#030712',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    color: '#38BDF8',
+                    padding: '6px 10px',
+                    fontSize: 12.5,
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="custom">✨ Active Configuration (Current Draft)</option>
+                  {savedPresets.map(p => (
+                    <option key={p.id} value={p.id}>
+                      📌 {p.name} — Port {p.vpsPort} (IP: {p.vpnIp})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={handleSaveAsPreset}
+                  style={{
+                    background: '#10B981',
+                    border: 'none',
+                    borderRadius: 6,
+                    color: '#FFFFFF',
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  title="Save current router configuration so it appears in Locations & Fleet dropdown"
+                >
+                  💾 Save as Preset
+                </button>
+                {activePresetId !== 'custom' && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePreset(activePresetId)}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid #7F1D1D',
+                      borderRadius: 6,
+                      color: '#F87171',
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                    title="Delete this saved preset"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {presetFeedback && (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: 8,
+                padding: '8px 14px',
+                marginBottom: 14,
+                fontSize: 12.5,
+                color: '#34D399',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}>
+                <span>✓</span> {presetFeedback}
+              </div>
+            )}
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
@@ -2210,6 +2411,67 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
                     Use SSL: Yes • Mode: Direct REST
                   </div>
                 </div>
+              </div>
+
+              {/* Quick Jump Action Button */}
+              <div style={{
+                marginBottom: 18,
+                padding: '14px 18px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}>
+                <div>
+                  <strong style={{ fontSize: 13.5, color: '#38BDF8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    🚀 1-Click Fast Register in Locations &amp; Fleet
+                  </strong>
+                  <p style={{ margin: '3px 0 0', fontSize: 12, color: '#94A3B8' }}>
+                    Saves this router profile and opens the Locations &amp; Fleet registration modal with all fields automatically filled in!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const preset = {
+                      name: newRouterName || `Branch Router ${nextRouterNumber}`,
+                      vpnIp: newRouterVpnIp,
+                      vpsPort: newRouterVpsPort,
+                      password: apiPassword,
+                      routerPublicKey: newRouterPublicKey,
+                      vpsPublicKey: vpsPublicKey,
+                    };
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('an_selected_import_router', JSON.stringify(preset));
+                      localStorage.setItem('an_auto_open_add_router', 'true');
+                    }
+                    if (onNavigateTab) {
+                      onNavigateTab('locations');
+                    } else {
+                      alert('Router profile saved! Open Locations & Fleet in the left sidebar to add.');
+                    }
+                  }}
+                  style={{
+                    background: '#2563EB',
+                    border: 'none',
+                    borderRadius: 8,
+                    color: '#FFFFFF',
+                    padding: '9px 18px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  🚀 Auto-Fill &amp; Open Locations &amp; Fleet
+                </button>
               </div>
 
               <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>

@@ -44,6 +44,97 @@ export default function LocationsTab({
   const [editingLocation, setEditingLocation] = useState(null);
   const [editingRouter, setEditingRouter] = useState(null);
   const [gpsDetecting, setGpsDetecting] = useState(false);
+  const [docPresets, setDocPresets] = useState([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [importedPresetNotice, setImportedPresetNotice] = useState('');
+
+  // ── Auto-read presets from Setup Docs & check auto-open flag ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const list = [];
+      const currentDraftRaw = localStorage.getItem('an_current_new_router_config');
+      if (currentDraftRaw) {
+        const c = JSON.parse(currentDraftRaw);
+        if (c && c.name) {
+          list.push({
+            id: 'current_draft',
+            name: `${c.name} (Current Setup Docs Draft)`,
+            rawName: c.name,
+            vpnIp: c.vpnIp || '10.10.10.4',
+            vpsPort: c.vpsPort || '8731',
+            password: c.password || 'AfricanNet2026!',
+            isDraft: true,
+          });
+        }
+      }
+      const savedRaw = localStorage.getItem('an_router_deployment_presets');
+      if (savedRaw) {
+        const arr = JSON.parse(savedRaw);
+        if (Array.isArray(arr)) {
+          arr.forEach(p => {
+            list.push({
+              id: p.id || p.name,
+              name: p.name,
+              rawName: p.name,
+              vpnIp: p.vpnIp,
+              vpsPort: p.vpsPort,
+              password: p.password,
+            });
+          });
+        }
+      }
+      setDocPresets(list);
+
+      // Check if user clicked "Auto-Fill & Open Locations & Fleet" from Setup Docs
+      const autoOpen = localStorage.getItem('an_auto_open_add_router');
+      if (autoOpen === 'true') {
+        localStorage.removeItem('an_auto_open_add_router');
+        const selectedRaw = localStorage.getItem('an_selected_import_router') || currentDraftRaw;
+        if (selectedRaw) {
+          const p = JSON.parse(selectedRaw);
+          setEditingRouter(null);
+          setRouterForm(prev => ({
+            ...prev,
+            name: p.name || 'Branch Router 3',
+            identity: p.name || 'Branch Router 3',
+            connection_mode: 'direct',
+            ip_address: '187.7.22.89',
+            port: Number(p.vpsPort) || 8731,
+            username: 'api-user',
+            password: p.password || 'AfricanNet2026!',
+            use_ssl: true,
+          }));
+          setSelectedPresetId(p.id || 'current_draft');
+          setImportedPresetNotice(`✓ Auto-filled credentials for ${p.name} (Port ${p.vpsPort})`);
+          setShowRouterModal(true);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading router presets:', e);
+    }
+  }, [showRouterModal]);
+
+  const handleApplyPreset = (presetId) => {
+    setSelectedPresetId(presetId);
+    if (!presetId) return;
+    const found = docPresets.find(item => item.id === presetId);
+    if (found) {
+      setRouterForm(prev => ({
+        ...prev,
+        name: found.rawName || found.name,
+        identity: found.rawName || found.name,
+        connection_mode: 'direct',
+        ip_address: '187.7.22.89',
+        port: Number(found.vpsPort) || 8731,
+        username: 'api-user',
+        password: found.password || 'AfricanNet2026!',
+        use_ssl: true,
+      }));
+      setImportedPresetNotice(`✓ Auto-filled credentials for ${found.rawName || found.name} (Port ${found.vpsPort}, User: api-user)`);
+      showToast?.(`✓ Applied preset for ${found.rawName || found.name}`, 'success');
+    }
+  };
 
   const handleTestSingleRouter = async (router) => {
     setTestingRouterId(router.id);
@@ -1031,6 +1122,54 @@ export default function LocationsTab({
             </div>
 
             <form onSubmit={handleSaveRouter}>
+              {/* ── Quick Import from Setup Docs Preset ── */}
+              {!editingRouter && (
+                <div style={{
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  marginBottom: '18px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <strong style={{ fontSize: '13px', color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      ⚡ Quick Import from Setup Docs Preset
+                    </strong>
+                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+                      Select a configured router to auto-fill all credentials
+                    </span>
+                  </div>
+
+                  <select
+                    value={selectedPresetId}
+                    onChange={(e) => handleApplyPreset(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#0F0F12',
+                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                      borderRadius: '8px',
+                      color: '#FFFFFF',
+                      padding: '8px 12px',
+                      fontSize: '12.5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="">-- Choose a configured router from Setup Docs to auto-fill --</option>
+                    {docPresets.map(p => (
+                      <option key={p.id} value={p.id}>
+                        📌 {p.name} — Port {p.vpsPort} (WireGuard IP: {p.vpnIp})
+                      </option>
+                    ))}
+                  </select>
+
+                  {importedPresetNotice && (
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#34D399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>✓</span> {importedPresetNotice}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Row 1: Router Name & Identity */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div>

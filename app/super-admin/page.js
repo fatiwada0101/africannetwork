@@ -2430,6 +2430,7 @@ export default function SuperAdminPage() {
             routersList={routersList}
             selectedRouterId={selectedRouterId}
             pollingConfig={pollingConfig}
+            onNavigateTab={setActiveTab}
           />
         )}
 
