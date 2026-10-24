@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { getActiveSessions, getHotspotUsers, isMikroTikConfigured, kickActiveSession, deleteHotspotUser, calculateExpiresAt } from '@/lib/mikrotik';
+import { durationSeconds, readExpiryComment } from '@/lib/voucher-expiry';
+import { syncVoucherDeadline } from '@/lib/voucher-expiry-sync';
 
 // Helper: parse MikroTik uptime or duration strings like "1h30m20s", "1d2h", "45m", "30s" into total seconds
 function parseDurationToSeconds(str) {
@@ -82,18 +84,19 @@ export async function GET(request) {
     let routerUser = null;
     let routerOnline = false;
 
-    const configured = await isMikroTikConfigured();
+    const targetRouterId = dbVoucher?.last_router_id || null;
+    const configured = targetRouterId || await isMikroTikConfigured();
     if (configured) {
       try {
         // Query active hotspot sessions
-        const sessions = await getActiveSessions();
+        const sessions = await getActiveSessions(targetRouterId);
         routerOnline = true;
         routerSession = sessions.find((s) => s.user === code);
 
         // If not in active sessions, query hotspot users to find historical uptime & limit
-        if (!routerSession) {
+        if (!routerSession || dbVoucher?.expiry_policy === 'first_login') {
           try {
-            const users = await getHotspotUsers();
+            const users = await getHotspotUsers(targetRouterId);
             routerUser = users.find((u) => u.name === code);
           } catch (e) {
             // Hotspot user lookup non-fatal
@@ -103,6 +106,8 @@ export async function GET(request) {
         console.warn('MikroTik API error during voucher status lookup:', err.message);
       }
     }
+
+    if (dbVoucher?.expiry_policy === 'first_login') await syncVoucherDeadline(dbVoucher, routerUser);
 
     // 3. VALIDATION: If voucher not found anywhere, return explicit invalid response
     if (!dbVoucher && !routerSession && !routerUser) {
@@ -116,7 +121,7 @@ export async function GET(request) {
     // 4. Compute telemetry
     const isConnected = !!routerSession;
     let uptimeSeconds = 0;
-    let limitUptimeSeconds = 86400; // default 24h
+    let limitUptimeSeconds = durationSeconds(dbVoucher?.duration) || 86400;
     let secondsRemaining = null;
     let bytesIn = 0;
     let bytesOut = 0;
@@ -145,15 +150,7 @@ export async function GET(request) {
       }
     }
 
-    // Calculate duration for this voucher
-    let totalDurationSec = 86400; // default 24h
-    const durationMatch = (dbVoucher?.duration || dbVoucher?.profile_name || '').toLowerCase();
-    if (durationMatch.includes('1 hour') || durationMatch.includes('1h')) totalDurationSec = 3600;
-    else if (durationMatch.includes('3 hour') || durationMatch.includes('3h')) totalDurationSec = 10800;
-    else if (durationMatch.includes('6 hour') || durationMatch.includes('6h')) totalDurationSec = 21600;
-    else if (durationMatch.includes('12 hour') || durationMatch.includes('12h')) totalDurationSec = 43200;
-    else if (durationMatch.includes('7 day') || durationMatch.includes('7d') || durationMatch.includes('week')) totalDurationSec = 604800;
-    else if (durationMatch.includes('30 day') || durationMatch.includes('30d') || durationMatch.includes('month')) totalDurationSec = 2592000;
+    const totalDurationSec = durationSeconds(dbVoucher?.duration) || 86400;
 
     if (!limitUptimeSeconds) limitUptimeSeconds = totalDurationSec;
 
@@ -176,8 +173,17 @@ export async function GET(request) {
       }
     }
 
+    if (dbVoucher?.expiry_policy === 'first_login') {
+      const metadata = readExpiryComment(routerUser?.comment);
+      // Wall-clock entitlement takes precedence over connected-time telemetry.
+      secondsRemaining = dbVoucher.expires_at ? Math.max(0, Math.ceil((Date.parse(dbVoucher.expires_at) - Date.now()) / 1000)) : limitUptimeSeconds;
+      if (!metadata && !dbVoucher.expires_at && dbVoucher.status !== 'expired') {
+        return NextResponse.json({ valid: false, error: 'Unable to verify the router voucher deadline. Please retry.' }, { status: 503 });
+      }
+      if (routerUser?.disabled === 'true' || routerUser?.disabled === true) secondsRemaining = 0;
+    }
     const isUsed = !!(dbVoucher?.is_used || uptimeSeconds > 0 || isConnected);
-    if (isUsed && dbVoucher && !dbVoucher.is_used) {
+    if (isUsed && dbVoucher && !dbVoucher.is_used && dbVoucher.expiry_policy !== 'first_login') {
       const updates = { is_used: true };
       if (!dbVoucher.expires_at) {
         updates.expires_at = calculateExpiresAt(dbVoucher.duration || dbVoucher.profile_name || '24h');
@@ -192,20 +198,20 @@ export async function GET(request) {
 
     const totalSeconds = limitUptimeSeconds || 86400;
     const percentRemaining = Math.max(0, Math.min(100, Math.round((secondsRemaining / totalSeconds) * 100)));
-    const isExpired = (dbVoucher?.status === 'expired') || (secondsRemaining <= 0 && isUsed);
+    const isExpired = (dbVoucher?.status === 'expired') || routerUser?.disabled === 'true' || routerUser?.disabled === true || (secondsRemaining <= 0 && isUsed);
     const isExpiringSoon = !isExpired && isUsed && (secondsRemaining < 1800 || percentRemaining <= 25); // < 30m or < 25%
 
     // 5. VALIDATION: If voucher is expired, disconnect from router and return explicit expired response
     if (isExpired) {
       // Disconnect user session if currently active on router
       if (isConnected && routerSession && routerSession['.id']) {
-        kickActiveSession(routerSession['.id']).catch((e) => {
+        await kickActiveSession(routerSession['.id'], targetRouterId).catch((e) => {
           console.warn(`Could not kick expired session ${code}:`, e.message);
         });
       }
       // Remove user record from router so they cannot re-authenticate
-      if (routerUser && routerUser['.id']) {
-        deleteHotspotUser(routerUser['.id']).catch((e) => {
+      if (routerUser && routerUser['.id'] && dbVoucher?.expiry_policy !== 'first_login') {
+        await deleteHotspotUser(routerUser['.id'], targetRouterId).catch((e) => {
           console.warn(`Could not delete expired user ${code}:`, e.message);
         });
       }
@@ -268,6 +274,9 @@ export async function GET(request) {
       mac_address: macAddress,
       router_online: routerOnline,
       created_at: dbVoucher?.created_at || null,
+      activated_at: dbVoucher?.activated_at || null,
+      expires_at: dbVoucher?.expires_at || null,
+      expiry_policy: dbVoucher?.expiry_policy || 'created_at',
     });
   } catch (err) {
     console.error('Error fetching voucher session status:', err);

@@ -1,6 +1,8 @@
 # African Network project index
 
-Verified from the local working tree on 2026-10-03 (Africa/Lagos).
+Verified from the local working tree on 2026-10-21 (Africa/Lagos).
+
+Voucher expiry follow-up on 2026-10-22: first-login continuous validity is implemented and deployed, the database migration is applied, and overdue factory vouchers were repaired. See [Voucher Factory expiry](docs/voucher-factory-expiry.md) for the source map, policy, and live validation results. Earlier indexing-only observations below retain their original scope.
 
 ## Project and workspace
 
@@ -31,8 +33,8 @@ Read [AGENTS.md](AGENTS.md) before application edits; it requires consulting the
 - [app/context/BrandingContext.js](app/context/BrandingContext.js): public runtime settings, branding, palette and theme persistence.
 - [app/context/LanguageContext.js](app/context/LanguageContext.js): English, Nigerian Pidgin, Yoruba, Hausa, and Igbo dictionaries.
 - [app/components/CheckoutModal.js](app/components/CheckoutModal.js): wallet purchase and gateway checkout, verification calls, voucher presentation.
-- [app/super-admin/page.js](app/super-admin/page.js): operator dashboard shell with 21 component files in `app/super-admin/components/`.
-- `app/api/`: 60 filesystem API routes; route-specific authorization, validation, and operations.
+- [app/super-admin/page.js](app/super-admin/page.js): operator dashboard shell with 23 component files in `app/super-admin/components/`.
+- `app/api/`: 63 filesystem API routes; route-specific authorization, validation, and operations.
 - [middleware.js](middleware.js): API-wide tiered rate limiting, conditional CSRF checking, correlation IDs and response headers.
 - [lib/supabase.js](lib/supabase.js): browser Supabase client. [lib/supabase-server.js](lib/supabase-server.js): lazy service-role client and wallet broadcasts.
 - [lib/mikrotik.js](lib/mikrotik.js): router settings, diagnostics, hotspot users/profiles, sessions, connection logs, queued tasks, walled garden, captive portal upload, reboot/restore operations.
@@ -45,6 +47,8 @@ Read [AGENTS.md](AGENTS.md) before application edits; it requires consulting the
 - `lib/hotspotTemplates.js`, `lib/receiptGenerator.js`, `lib/voucherCardGenerator.js`, `lib/voucher-utils.js`: captive portal templates, receipts, printable voucher sheets, and voucher/reference generation.
 
 ## Main flows
+
+Voucher Factory expiry and its repair are mapped in [docs/voucher-factory-expiry.md](docs/voucher-factory-expiry.md). Factory vouchers use persistent router deadlines starting on first successful login, with a ten-second local enforcement sweep. See that document for rollout requirements and existing-voucher policy.
 
 ### Wallet purchase
 
@@ -84,7 +88,9 @@ Versioned SQL is in [supabase/migrations](supabase/migrations); [scripts/schema.
 3. `20260917000003_phase3_growth.sql`: `voucher_transfers` and growth-related voucher fields/RLS.
 4. `20260917000004_phase4_business.sql`: `referral_rewards`, `reseller_commissions`, `support_tickets`, `push_subscriptions`, profile enhancements, wallet transfer RPC and RLS.
 5. `20260917000005_phase5_scale.sql`: `tenants`, tenant-related schema additions, RLS, and primary-tenant seed.
-6. `20261003000001_monnify_payment_settlement.sql`: server-owned Monnify orders, atomic wallet settlement, voucher leases/fallback recovery, service-only privileges, and idempotent polling task keys. See [Monnify rollout notes](docs/monnify-integration.md); this migration is not yet applied remotely.
+6. `20261003000001_monnify_payment_settlement.sql`: server-owned Monnify orders, atomic wallet settlement, voucher leases/fallback recovery, service-only privileges, and idempotent polling task keys. See [Monnify rollout notes](docs/monnify-integration.md); historical notes report it unapplied, but remote status was not rechecked during this indexing pass.
+7. `20261014000001_fix_voucher_expiry.sql`: replaces the expiry RPC to catch legacy vouchers without explicit expiry timestamps.
+8. `20261018000001_supabase_cron_voucher_expiry.sql`: replaces the expiry RPC again with duration/name-based wall-clock checks and attempts to install/schedule a ten-minute PostgreSQL cron sweep. Extension/scheduling failures become notices, so the migration file alone does not prove the job exists remotely.
 
 Key RPCs: `handle_new_user`, `adjust_wallet_balance`, `claim_fallback_voucher`, `expire_outdated_vouchers`, `get_admin_stats`, `transfer_wallet_balance`, `settle_monnify_payment`, `claim_monnify_fallback`, `complete_monnify_voucher`.
 
@@ -104,18 +110,19 @@ Use `.env.example` as a starting point; runtime settings also come from the data
 
 `next.config.mjs` defines security/CSP headers and aliases: `/signup` -> `/auth`, `/plans` -> `/packages`, `/passes` -> `/vouchers`, and `/api/mikrotik/test` -> `/api/mikrotik/test-connection`. `/admin` redirects to `/super-admin`.
 
-Current Vercel cron expressions are `0 0 * * *` for voucher expiry and `30 0 * * *` for renewal: daily at 00:00/00:30 UTC (01:00/01:30 WAT). Notes claiming 15-minute/10-minute intervals do not match this checked-in configuration.
+Current Vercel cron expressions are `0 0 * * *` for voucher expiry and `30 0 * * *` for renewal: daily at 00:00/00:30 UTC (01:00/01:30 WAT). The October 18 migration separately attempts a ten-minute database expiry sweep. That SQL job updates database records; the API expiry handler additionally performs router cleanup and clock synchronization. These schedules and responsibilities are distinct; actual remote cron installation was not checked.
 
 ## Documentation and validation status
 
+- On 2026-10-21, `npm test` passed all 31 master checks and all 22 Monnify regression tests. The run emitted module-type and missing-test-process `JWT_SECRET` warnings. No production build or live integration validation was performed during this indexing pass.
 - [docs/production-roadmap/PROGRESS.md](docs/production-roadmap/PROGRESS.md): feature tracker; its body marks all 31 features complete while its opening summary still says phase 4 is active.
 - [docs/multi-router-roaming/README.md](docs/multi-router-roaming/README.md): architecture, database, GPS, experience and implementation notes.
 - [README.md](README.md): setup guidance, but its Next.js 14 and authentication descriptions are outdated.
-- [public/openapi.json](public/openapi.json): currently describes 10 paths, considerably fewer than the 60 implemented route files. [app/docs/page.js](app/docs/page.js) is a custom searchable specification viewer.
+- [public/openapi.json](public/openapi.json): currently describes 10 paths, considerably fewer than the 63 implemented route files. [app/docs/page.js](app/docs/page.js) is a custom searchable specification viewer.
 - [test/run-all.js](test/run-all.js): `npm test` passed **31/31** on 2026-10-03. Many checks assert source/file presence or sample arithmetic; some exercise real helper functions. Passing does not verify live payments, applied remote migrations, router behavior, end-to-end flows, or full production readiness.
 - Test execution warned that the package omits module type and that `JWT_SECRET` was absent from the test process. No environment file was loaded by this test command.
 - During the subsequent Monnify fix task, `npm test` passed all 31 existing checks plus 22 Monnify regressions, and the production build passed. Monnify regression tests use actual settlement SQL in isolated PostgreSQL with mocked gateway/router boundaries. Configured Supabase was checked read-only: Monnify is disabled, credentials empty, and the settlement migration absent. See [rollout notes](docs/monnify-integration.md).
-- Existing local modifications include payment/settings/UI/schema/test helpers and an untracked Monnify webhook route. Preserve them when starting new work.
+- The Git working tree was clean at the start of the 2026-10-21 indexing pass. Older notes about uncommitted payment changes describe an earlier snapshot.
 
 ## Page inventory
 
@@ -158,6 +165,7 @@ Methods below are exported handlers found in source. Authorization and payload c
 - `POST /api/mikrotik/reboot` — [app/api/mikrotik/reboot/route.js](app/api/mikrotik/reboot/route.js)
 - `POST /api/mikrotik/restore-defaults` — [app/api/mikrotik/restore-defaults/route.js](app/api/mikrotik/restore-defaults/route.js)
 - `POST /api/mikrotik/sync-hotspot` — [app/api/mikrotik/sync-hotspot/route.js](app/api/mikrotik/sync-hotspot/route.js)
+- `GET, POST /api/mikrotik/sync-clock` — [app/api/mikrotik/sync-clock/route.js](app/api/mikrotik/sync-clock/route.js): admin router clock diagnostics and synchronization.
 - `GET /api/mikrotik/system-health` — [app/api/mikrotik/system-health/route.js](app/api/mikrotik/system-health/route.js)
 - `GET /api/mikrotik/test-connection` — [app/api/mikrotik/test-connection/route.js](app/api/mikrotik/test-connection/route.js)
 - `GET /api/mikrotik/test` — [app/api/mikrotik/test/route.js](app/api/mikrotik/test/route.js)
@@ -185,6 +193,8 @@ Methods below are exported handlers found in source. Authorization and payload c
 - `GET, POST, DELETE /api/super-admin/plans` — [app/api/super-admin/plans/route.js](app/api/super-admin/plans/route.js)
 - `GET, PATCH /api/super-admin/resellers` — [app/api/super-admin/resellers/route.js](app/api/super-admin/resellers/route.js)
 - `GET, POST, PUT, DELETE /api/super-admin/routers` — [app/api/super-admin/routers/route.js](app/api/super-admin/routers/route.js)
+- `GET /api/super-admin/routers/list` — [app/api/super-admin/routers/list/route.js](app/api/super-admin/routers/list/route.js): global admin router selector.
+- `GET /api/super-admin/users` — [app/api/super-admin/users/route.js](app/api/super-admin/users/route.js): combines profiles, auth emails, wallet balances, transaction totals, and voucher counts for customer search.
 - `GET /api/super-admin/schema` — [app/api/super-admin/schema/route.js](app/api/super-admin/schema/route.js)
 - `GET, POST /api/super-admin/settings` — [app/api/super-admin/settings/route.js](app/api/super-admin/settings/route.js)
 - `GET /api/super-admin/tenants` — [app/api/super-admin/tenants/route.js](app/api/super-admin/tenants/route.js)

@@ -653,11 +653,12 @@ export default function VoucherFactoryTab({
                         <option value="3h">3 Hours</option>
                         <option value="6h">6 Hours</option>
                         <option value="12h">12 Hours</option>
-                        <option value="daily">Daily (24h)</option>
+                        <option value="daily">Daily (24 hours)</option>
                         <option value="weekly">Weekly (7d)</option>
                         <option value="monthly">Monthly (30d)</option>
-                        <option value="custom">Custom Duration</option>
+                        <option value="custom">Custom Duration (e.g. 2d)</option>
                       </select>
+                      <p style={{ fontSize: 12, marginTop: 6 }}>Starts on first successful login and keeps counting while offline. Daily = 24 hours; monthly = 30 days. Reconnecting does not reset the timer.</p>
                     </div>
 
                     {voucherGen.expiry_type === 'custom' && (

@@ -168,9 +168,35 @@ export default function DashboardTab({
                 ) : (
                   <div className="sa-health-offline-banner">
                     <div className="sa-offline-icon">⚠️</div>
-                    <div>
-                      <strong>Router unreachable at {mikrotikForm.ip}:{mikrotikForm.port}</strong>
-                      <p>Check power, Ethernet, and REST API service.</p>
+                    <div style={{ flex: 1 }}>
+                      <strong>{routersList.find(r => r.id === selectedRouterId)?.name || 'Router'} unreachable at {routersList.find(r => r.id === selectedRouterId)?.ip_address || mikrotikForm.ip}:{routersList.find(r => r.id === selectedRouterId)?.port || mikrotikForm.port}</strong>
+                      <p style={{ marginTop: '2px', fontSize: '12px', color: '#A1A1AA' }}>
+                        {routersList.find(r => r.id === selectedRouterId)?.connection_mode === 'polling'
+                          ? 'Awaiting polling agent heartbeat. Check power and router internet connection.'
+                          : 'Checking WireGuard tunnel & REST API. When power cuts off, the router auto-recovers once rebooted.'}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', color: '#F59E0B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                          Auto-recovery active — checking every 30 seconds...
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('mikrotik')}
+                          style={{
+                            background: 'rgba(52, 168, 83, 0.15)',
+                            border: '1px solid rgba(52, 168, 83, 0.4)',
+                            color: '#4ADE80',
+                            borderRadius: '6px',
+                            padding: '3px 10px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Power-Cut Auto-Recovery Setup →
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -190,7 +216,14 @@ export default function DashboardTab({
                     <span className="sa-badge sa-badge-success">● Active</span>
                   </div>
                   <div className="sa-service-row">
-                    <div className="sa-service-info"><strong>MikroTik REST</strong><span>{mikrotikForm.ip}:{mikrotikForm.port}</span></div>
+                    <div className="sa-service-info">
+                      <strong>MikroTik REST</strong>
+                      <span>
+                        {routersList.find(r => r.id === selectedRouterId)?.ip_address || mikrotikForm.ip}:
+                        {routersList.find(r => r.id === selectedRouterId)?.port || mikrotikForm.port}
+                        {routersList.find(r => r.id === selectedRouterId)?.name ? ` (${routersList.find(r => r.id === selectedRouterId).name})` : ''}
+                      </span>
+                    </div>
                     <span className={`sa-badge ${testResult?.connected ? 'sa-badge-success' : 'sa-badge-danger'}`}>
                       {testResult?.connected ? '● Connected' : '○ Offline'}
                     </span>

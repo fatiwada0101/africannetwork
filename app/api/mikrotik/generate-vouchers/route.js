@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createOrQueueHotspotUser, deleteHotspotUser, getHotspotUsers, calculateExpiresAt } from '@/lib/mikrotik';
+import { createOrQueueHotspotUser, deleteHotspotUser, getHotspotUsers } from '@/lib/mikrotik';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { validateAdminAuth, unauthorizedResponse } from '@/lib/admin-auth';
 import { validateBody, voucherGenerateSchema } from '@/lib/schemas';
+import { durationSeconds } from '@/lib/voucher-expiry';
 
 function parseDataLimitToBytes(limit) {
   if (!limit || limit === 'unlimited') return null;
@@ -134,7 +135,15 @@ export async function POST(request) {
       'custom': custom_duration || '1d',
     };
 
-    const limitUptime = expiryMap[expiry_type] || '1d';
+    const rawDuration = expiryMap[expiry_type];
+    const durationSec = durationSeconds(rawDuration);
+    if (!durationSec || durationSec > 366 * 86400) {
+      return NextResponse.json({ error: 'Choose a valid duration, for example 24h, 2d, 7d or 30d (maximum 366 days).' }, { status: 400 });
+    }
+    const limitUptime = durationSec % 86400 === 0 ? `${durationSec / 86400}d` : durationSec % 3600 === 0 ? `${durationSec / 3600}h` : `${durationSec}s`;
+    // Verify migration availability before provisioning any router users.
+    const { error: schemaError } = await supabaseAdmin.from('vouchers').select('expiry_policy,activated_at').limit(1);
+    if (schemaError) return NextResponse.json({ error: 'Apply the first-login voucher expiry migration before generating vouchers.' }, { status: 503 });
 
     const expiryLabels = {
       '1h': '1 Hour',
@@ -223,6 +232,7 @@ export async function POST(request) {
 
     const results = [];
     const errors = [];
+    const factorySetupCache = new Set();
 
     // Create vouchers sequentially to avoid overwhelming router
     for (let i = 0; i < count; i++) {
@@ -242,10 +252,12 @@ export async function POST(request) {
           expiry_mode: expiryMode,
           limit_bytes_total: limitBytesTotal,
           routerId: router_id,
+          expiryPolicy: 'first_login',
+          factorySetupCache,
         });
 
         // Insert into Supabase vouchers table
-        const { data: insertedVoucher } = await supabaseAdmin
+        const { data: insertedVoucher, error: insertError } = await supabaseAdmin
           .from('vouchers')
           .insert({
             voucher_code: code,
@@ -253,7 +265,9 @@ export async function POST(request) {
             price: Number(price),
             is_used: false,
             duration: limitUptime,
-            expires_at: calculateExpiresAt(limitUptime),
+            expiry_policy: 'first_login',
+            activated_at: null,
+            expires_at: null,
             status: 'active',
             batch_id: batchId,
             data_limit: data_limit || 'unlimited',
@@ -263,6 +277,10 @@ export async function POST(request) {
           })
           .select('id')
           .single();
+        if (insertError) {
+          if (routerResult.routerId) await deleteHotspotUser(routerResult.routerId, router_id).catch(() => {});
+          throw new Error('Voucher could not be saved in the database. Router rollback was attempted; check router users before retrying.');
+        }
 
         const cleanHotspot = hotspotUrl || 'asuktech.net';
         const qrUrl = `http://${cleanHotspot}/login?code=${encodeURIComponent(code)}`;
@@ -290,7 +308,8 @@ export async function POST(request) {
     }
 
     return NextResponse.json({
-      success: true,
+      success: results.length > 0,
+      ...(results.length === 0 ? { error: errors[0]?.error || 'No vouchers were created' } : {}),
       batch_id: batchId,
       generated: results.length,
       failed: errors.length,
@@ -299,9 +318,10 @@ export async function POST(request) {
       expiry_type,
       expiry_label: expiryLabel,
       limit_uptime: limitUptime,
+      expiry_policy: 'first_login',
       data_limit: data_limit || 'Unlimited',
       hotspot_url: hotspotUrl,
-    });
+    }, { status: results.length > 0 ? 200 : 502 });
   } catch (error) {
     console.error('Bulk voucher generation error:', error.message);
     return NextResponse.json(

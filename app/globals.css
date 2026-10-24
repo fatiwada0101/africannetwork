@@ -6172,5 +6172,13 @@ input, select, textarea {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-
-
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+}

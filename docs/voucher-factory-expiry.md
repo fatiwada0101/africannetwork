@@ -1,0 +1,51 @@
+# Voucher Factory: first-login expiry
+
+Policy confirmed by the operator on 2026-10-21: validity starts at the first successful router login and continues while offline. Reconnecting does not renew the voucher. Daily means 24 hours, custom `2d` means 48 hours, weekly means 7 days, and monthly means 30 days.
+
+## Source map
+
+- `app/super-admin/components/VoucherFactoryTab.js`: duration selection, batch requests and printed vouchers.
+- `app/api/mikrotik/generate-vouchers/route.js`: validates and normalizes the duration, provisions router users, stores unactivated database records, and reports provisioning/persistence failures.
+- `lib/voucher-expiry.js`: shared duration/deadline helpers and RouterOS login/sweep scripts.
+- `lib/router-voucher-expiry.js`: checks RouterOS version/clock and installs the login hook and ten-second scheduler.
+- `lib/mikrotik.js`: direct provisioning on a dedicated factory profile; router expiry cleanup.
+- `lib/voucher-expiry-sync.js`: copies router activation/deadline metadata into Supabase.
+- `app/api/vouchers/status/route.js` and `validate/route.js`: use the recorded deadline, target the voucher's router, and never recreate a missing first-login user with fresh validity.
+- `app/api/cron/expire-vouchers/route.js`: paginated database reconciliation and retry of router enforcement, regardless of voucher age.
+- `supabase/migrations/20261021000001_factory_first_login_expiry.sql`: activation/policy columns and a database sweep that preserves unused first-login stock.
+
+## Why the old cutoffs failed
+
+`limit-uptime` measures connected usage. `keepalive-timeout` detects an unreachable client; extending it to one day does not implement a persistent validity deadline. A short voucher could exhaust connected usage while daily/weekly/monthly vouchers continued across disconnections.
+
+The old factory wrote `expires_at` at generation time, contradicting first-login validity. Database expiry did not itself disconnect router sessions. Cleanup retried only expired records created in the past 48 hours, excluding weekly/monthly records. Duration parsing used substring matches that could confuse `12h` with `2h` and `2 weeks` with one week.
+
+Live diagnosis found factory vouchers marked expired in Supabase still connected on RouterOS 7.19.6. Local Vercel configuration runs expiry reconciliation daily; the separate PostgreSQL sweep only changes database state.
+
+## Enforcement
+
+New factory users have a persistent router comment prefix `ANV1|durationSeconds|deadlineEpochSeconds|`. A zero deadline means unactivated stock. The profile login hook records a deadline once. It is preserved in router configuration across disconnections and reboots. A router scheduler disables due users and removes their active sessions/cookies every ten seconds. Cutoff can lag the deadline by one scheduler interval under normal router load. No browser page or Vercel cron invocation is required for this cutoff.
+
+The router uses its synchronized clock. RouterOS `:tonsec` returns nanoseconds, so the scripts convert to seconds before recording deadlines. Factory profiles retain device and bandwidth settings without inheriting vendor login hooks that might overwrite deadline comments. Connection usage remains capped by `limit-uptime` as an additional limit.
+
+Factory generation currently requires direct router access and RouterOS 7.12+. Polling-mode generation fails explicitly because the old polling agent does not install first-login enforcement. The existing active router uses direct mode. Other purchase flows retain their existing validity policy.
+
+## Rollout and existing vouchers
+
+1. Apply the versioned SQL migration and record it in the existing `public.change_history` audit table; deploy the application changes.
+2. Run `node --env-file=.env.local scripts/repair-voucher-expiry.mjs` for a read-only preview.
+3. Run with `--apply` to install enforcement and adopt existing factory records. The operator chose to expire older vouchers past their existing database deadline. The repair preserves future deadlines for already-used vouchers and gives still-valid unused stock first-login expiry. It does not revive expired stock or infer a historical first login from accumulated uptime.
+4. `--expire-overdue-only --apply` performs only overdue disconnection/disablement without requiring the new schema. It is useful while database migration access is unavailable.
+5. Run `scripts/inspect-voucher-expiry.mjs` to compare database expiry against connected/enabled router users.
+
+The repair requires service credentials and router access. Applying SQL through the management API additionally requires a valid `SUPABASE_ACCESS_TOKEN`; the local operator token file is a fallback. No credential values belong in this document or logs.
+
+## Validation
+
+On 2026-10-22, the migration was applied to production and recorded in `public.change_history`. The repair disabled 157 overdue router vouchers; four had already been repaired, and 14 database vouchers had no matching router account. No historical first-login times were invented. All 71 automated checks and the local production build passed.
+
+Production deployment `dpl_7vuauuGwg51KSQgQJtJEUhBe8aTA` is ready at https://wifi-app-seven.vercel.app. Live checks returned homepage 200, missing-code status 400, and unauthenticated expiry cron 401. Router inspection confirmed all 161 matched overdue vouchers disabled and none connected. A temporary voucher created through the production provisioning helper verified a pending 48-hour deadline, the dedicated profile login hook, and the enabled ten-second scheduler; the temporary user was removed. The managed profile and scheduler remain installed for factory use.
+
+`npm run test:expiry` exercises duration boundaries, actual SQL expiry in isolated PostgreSQL, first-login stock, non-extension of deadlines, old-expired cleanup, router installer errors, and factory persistence/rollback behavior. `npm test` includes these cases alongside existing tests.
+
+`scripts/test-router-voucher-expiry.mjs` creates isolated temporary records on the configured direct router. It executes the actual login script for 1h/1d/2d/7d/30d, checks repeat-login preservation, forces elapsed deadlines, and verifies automatic scheduled disablement and unused-stock preservation. It cleans up test records afterward. This validates script execution and scheduling, not a multi-day waiting period or a physical client login.

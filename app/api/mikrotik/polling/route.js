@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { isPrivateIp } from '@/lib/mikrotik';
 
 /**
  * MikroTik Polling API — consumed by the RouterOS polling script.
@@ -33,7 +34,7 @@ async function validatePollingSecret(request) {
     // 1. Check routers table for per-router secret
     const { data: router, error: routerErr } = await supabaseAdmin
       .from('routers')
-      .select('id, name, identity, location_id, status, polling_secret')
+      .select('id, name, identity, location_id, status, polling_secret, ip_address, connection_mode')
       .eq('polling_secret', providedSecret)
       .maybeSingle();
 
@@ -73,12 +74,36 @@ export async function GET(request) {
   const action = url.searchParams.get('action');
   const now = new Date().toISOString();
 
+  // Extract client WAN IP
+  const forwardedHeader = request.headers.get('x-forwarded-for');
+  const realIpHeader = request.headers.get('x-real-ip');
+  const cfIpHeader = request.headers.get('cf-connecting-ip');
+  const incomingIp = (
+    (forwardedHeader ? forwardedHeader.split(',')[0].trim() : '') ||
+    realIpHeader ||
+    cfIpHeader ||
+    ''
+  ).trim();
+
   if (action === 'heartbeat') {
     // Record heartbeat on the specific router or global app_settings
     if (auth.router) {
+      const updates = { status: 'online', last_seen_at: now, updated_at: now };
+      if (
+        incomingIp &&
+        !isPrivateIp(incomingIp) &&
+        incomingIp !== '127.0.0.1' &&
+        incomingIp !== 'localhost' &&
+        auth.router.ip_address !== incomingIp &&
+        auth.router.ip_address !== '187.7.22.89'
+      ) {
+        updates.ip_address = incomingIp;
+        console.log(`[Polling] Router "${auth.router.name}" public IP auto-updated from ${auth.router.ip_address} to ${incomingIp}`);
+      }
+
       await supabaseAdmin
         .from('routers')
-        .update({ status: 'online', last_seen_at: now, updated_at: now })
+        .update(updates)
         .eq('id', auth.router.id);
     } else {
       await supabaseAdmin

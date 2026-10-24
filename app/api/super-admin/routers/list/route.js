@@ -26,6 +26,7 @@ export async function GET(request) {
       ip_address: r.ip_address,
       port: r.port,
       connection_mode: r.connection_mode,
+      polling_secret: r.polling_secret || null,
       last_seen_at: r.last_seen_at,
       model: r.model,
       ros_version: r.ros_version,

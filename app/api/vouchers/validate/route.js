@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { isMikroTikConfigured, getHotspotUsers, createHotspotUser } from '@/lib/mikrotik';
+import { readExpiryComment } from '@/lib/voucher-expiry';
+import { syncVoucherDeadline } from '@/lib/voucher-expiry-sync';
 
 /**
  * GET /api/vouchers/validate?code=XXXX
@@ -38,11 +40,11 @@ export async function GET(request) {
     // 1. Check Supabase vouchers table
     const { data: dbVoucher } = await supabaseAdmin
       .from('vouchers')
-      .select('voucher_code, profile_name, price, is_used, created_at, status, expires_at, data_limit, duration, last_router_id')
+      .select('*')
       .eq('voucher_code', code)
       .maybeSingle();
 
-    const targetRouterId = routerIdParam || dbVoucher?.last_router_id || null;
+    const targetRouterId = dbVoucher?.last_router_id || routerIdParam || null;
 
     // 2. Check MikroTik for this user (needed for both DB and non-DB paths)
     const configured = await isMikroTikConfigured();
@@ -59,6 +61,16 @@ export async function GET(request) {
 
     // 3. If found in DB
     if (dbVoucher) {
+      if (dbVoucher.expiry_policy === 'first_login') {
+        const metadata = readExpiryComment(routerUser?.comment);
+        if (metadata) await syncVoucherDeadline(dbVoucher, routerUser);
+        const expired = dbVoucher.status === 'expired' || (dbVoucher.expires_at && Date.parse(dbVoucher.expires_at) <= Date.now()) || routerUser?.disabled === 'true' || routerUser?.disabled === true;
+        if (expired) return NextResponse.json({ valid: false, is_expired: true, code, error: 'This voucher has expired. Please purchase a new plan.' }, { status: 410 });
+        // Never recreate a missing first-login user: its unsynced deadline may
+        // already have elapsed, and re-creation would grant a fresh allowance.
+        if (!metadata) return NextResponse.json({ valid: false, code, error: 'Unable to verify the router voucher deadline. Please contact support.' }, { status: 503 });
+        return NextResponse.json({ valid: true, code, plan_name: dbVoucher.profile_name, is_used: !!metadata.deadline, expires_at: dbVoucher.expires_at, expiry_policy: 'first_login', source: 'router' });
+      }
       // If explicitly flagged as expired in DB
       if (dbVoucher.status === 'expired') {
         return NextResponse.json({

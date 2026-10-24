@@ -656,9 +656,50 @@ export default function SuperAdminPage() {
   useEffect(() => {
     if (authed && token) {
       fetchCoreData();
-      handleTestMikrotik(true);
     }
   }, [authed, token, fetchCoreData]);
+
+  // When selected router changes or is first populated, test its connection
+  useEffect(() => {
+    if (!authed || !token || !selectedRouterId) return;
+    handleTestMikrotik(true, selectedRouterId);
+  }, [authed, token, selectedRouterId, handleTestMikrotik]);
+
+  // Auto-recovery polling: when router is offline, re-check every 30s until it comes back
+  useEffect(() => {
+    if (!authed || !token) return;
+    // Only poll when the router is currently offline
+    if (testResult?.connected !== false) return;
+    // Don't poll during active reboots (handled by handleRestartMikrotik's own timers)
+    if (rebootLoading) return;
+
+    const recoveryInterval = setInterval(async () => {
+      try {
+        const targetRouterId = selectedRouterId;
+        const url = targetRouterId
+          ? `/api/mikrotik/test-connection?router_id=${encodeURIComponent(targetRouterId)}`
+          : '/api/mikrotik/test-connection';
+        const res = await fetch(url, {
+          headers: adminHeaders(),
+          signal: AbortSignal.timeout(10000),
+        });
+        const data = await res.json();
+        if (data.connected) {
+          // Router recovered! Update state and notify
+          setTestResult(data);
+          fetchRoutersList();
+          fetchCoreData();
+          const idInfo = data.identity || data.router?.model || '';
+          showToast(`🟢 Router back online! ${idInfo ? `(${idInfo})` : ''} Auto-recovery detected.`);
+        }
+        // If still offline, silently continue polling
+      } catch {
+        // Network error during recovery poll — silently continue
+      }
+    }, 30000);
+
+    return () => clearInterval(recoveryInterval);
+  }, [authed, token, testResult?.connected, rebootLoading, selectedRouterId, adminHeaders, fetchRoutersList, fetchCoreData, showToast]);
 
   // Tab-specific data loading
   useEffect(() => {

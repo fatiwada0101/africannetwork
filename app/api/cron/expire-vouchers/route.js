@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
+import { voucherDeadline } from '@/lib/voucher-expiry';
+import { syncFactoryVoucherDeadlines } from '@/lib/voucher-expiry-sync';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { cleanupExpiredHotspotUsers, syncRouterClockAndNtp, isMikroTikConfigured } from '@/lib/mikrotik';
+import { cleanupExpiredHotspotUsers, syncRouterClockAndNtp } from '@/lib/mikrotik';
+import { validateAdminAuth } from '@/lib/admin-auth';
 
 /**
  * Automated Voucher Expiry & Router Enforcement Cron Job
- * Runs periodically (e.g. every 15 minutes) via Vercel Cron.
+ * Daily reconciliation via Vercel Cron; factory cutoffs run locally on the router every 10 seconds.
  *
  * Performs:
  * 1. Discovers all vouchers that have reached their expiration time (or legacy vouchers without expires_at).
@@ -21,9 +24,8 @@ async function processVoucherExpiry(request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     // Also allow admin auth if called manually from admin dashboard
-    const { validateAdminAuth } = await import('@/lib/admin-auth');
     const isAdmin = await validateAdminAuth(request);
     if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -31,123 +33,50 @@ async function processVoucherExpiry(request) {
   }
 
   try {
-    const nowIso = new Date().toISOString();
     const expiredCodes = new Set();
 
-    // 1. Find all active vouchers with expires_at in the past
-    const { data: expiredByDate } = await supabaseAdmin
-      .from('vouchers')
-      .select('id, voucher_code, duration, created_at, status')
-      .eq('status', 'active')
-      .not('expires_at', 'is', null)
-      .lt('expires_at', nowIso);
-
-    (expiredByDate || []).forEach(v => {
-      if (v.voucher_code) expiredCodes.add(v.voucher_code);
-    });
-
-    // 2. Catch legacy vouchers where expires_at was NULL but duration elapsed
-    // Default to 24h ago if duration unknown, or 1h/7d based on duration
-    const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const { data: legacyExpired } = await supabaseAdmin
-      .from('vouchers')
-      .select('id, voucher_code, duration, created_at')
-      .eq('status', 'active')
-      .is('expires_at', null)
-      .lt('created_at', oneDayAgo);
-
-    (legacyExpired || []).forEach(v => {
-      if (v.voucher_code) expiredCodes.add(v.voucher_code);
-    });
-
-    // 3. BRUTEFORCE: Catch ALL active vouchers where created_at + duration has elapsed
-    // This is the ultimate safety net — if created_at + actual duration < now, it's expired. Period.
-    const durationThresholds = [
-      { match: ['1h', '1 hour'], seconds: 3600 },
-      { match: ['2h', '2 hour'], seconds: 7200 },
-      { match: ['3h', '3 hour'], seconds: 10800 },
-      { match: ['6h', '6 hour'], seconds: 21600 },
-      { match: ['12h', '12 hour'], seconds: 43200 },
-      { match: ['24h', '1d', 'daily', '1 day'], seconds: 86400 },
-      { match: ['2d', '2 day'], seconds: 172800 },
-      { match: ['3d', '3 day'], seconds: 259200 },
-      { match: ['7d', '1w', 'week', '7 day'], seconds: 604800 },
-      { match: ['14d', '2w', '2 week'], seconds: 1209600 },
-      { match: ['30d', '1m', 'month', '30 day'], seconds: 2592000 },
-    ];
-
-    // Fetch all active vouchers and check each one against wall-clock time
-    const { data: allActive } = await supabaseAdmin
-      .from('vouchers')
-      .select('id, voucher_code, duration, profile_name, created_at')
-      .eq('status', 'active')
-      .eq('is_used', true);
-
-    const now = Date.now();
-    (allActive || []).forEach(v => {
-      if (!v.created_at || !v.voucher_code) return;
-      const createdMs = new Date(v.created_at).getTime();
-      const durationKey = (v.duration || v.profile_name || '24h').toLowerCase();
-
-      // Find matching duration
-      let maxLifetimeSec = 86400; // default 24h
-      for (const t of durationThresholds) {
-        if (t.match.some(m => durationKey.includes(m))) {
-          maxLifetimeSec = t.seconds;
-          break;
-        }
+    const synchronization = await syncFactoryVoucherDeadlines();
+    // Paginate all records: weekly/monthly vouchers are older than 48 hours
+    // when they expire. Keep retrying router enforcement regardless of age.
+    for (let offset = 0; ; offset += 500) {
+      const { data: vouchers, error } = await supabaseAdmin.from('vouchers')
+        .select('id,voucher_code,status,duration,created_at,expires_at,expiry_policy')
+        .order('id').range(offset, offset + 499);
+      if (error) throw new Error(error.message);
+      for (const voucher of vouchers || []) {
+        const deadline = voucherDeadline(voucher);
+        if (voucher.status === 'expired' || (deadline !== null && deadline <= Date.now())) expiredCodes.add(voucher.voucher_code);
       }
-
-      // Add 5 minute grace period
-      const deadline = createdMs + (maxLifetimeSec * 1000) + (5 * 60 * 1000);
-      if (now > deadline) {
-        expiredCodes.add(v.voucher_code);
-      }
-    });
-
-    // Also include recently expired vouchers from past 48h to clean any lingering router records
-    const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
-    const { data: recentExpired } = await supabaseAdmin
-      .from('vouchers')
-      .select('voucher_code')
-      .eq('status', 'expired')
-      .gte('created_at', twoDaysAgo)
-      .limit(200);
-
-    (recentExpired || []).forEach(v => {
-      if (v.voucher_code) expiredCodes.add(v.voucher_code);
-    });
-
+      if (!vouchers || vouchers.length < 500) break;
+    }
     const expiredList = Array.from(expiredCodes);
 
     // 3. Update database records to 'expired'
     let dbUpdated = 0;
-    if (expiredList.length > 0) {
-      const { data: updatedRows } = await supabaseAdmin
+    for (let offset = 0; offset < expiredList.length; offset += 200) {
+      const { data: updatedRows, error: updateError } = await supabaseAdmin
         .from('vouchers')
         .update({ status: 'expired', is_used: true })
-        .in('voucher_code', expiredList)
+        .in('voucher_code', expiredList.slice(offset, offset + 200))
         .select('id');
-      dbUpdated = updatedRows?.length || 0;
+      if (updateError) throw new Error(updateError.message);
+      dbUpdated += updatedRows?.length || 0;
     }
 
     // Call stored procedure for fallback vouchers cleanup
-    await supabaseAdmin.rpc('expire_outdated_vouchers').catch(() => {});
+    const { error: expiryError } = await supabaseAdmin.rpc('expire_outdated_vouchers');
+    if (expiryError) throw new Error(expiryError.message);
 
     // 4. MIKROTIK ROUTER ENFORCEMENT: Kick active sessions and delete expired users
     let routerStats = { kickedCount: 0, deletedCount: 0, errors: [] };
-    const mikrotikConfigured = await isMikroTikConfigured();
+    try {
+      routerStats = await cleanupExpiredHotspotUsers(expiredList);
 
-    if (mikrotikConfigured) {
-      try {
-        routerStats = await cleanupExpiredHotspotUsers(expiredList);
-
-        // Keep router date and clock synchronized with NTP
-        await syncRouterClockAndNtp('Africa/Lagos').catch(() => {});
-      } catch (routerErr) {
-        console.warn('Router cleanup error during expiry cron:', routerErr.message);
-        routerStats.errors.push(routerErr.message);
-      }
+      // Keep router date and clock synchronized with NTP
+      await syncRouterClockAndNtp('Africa/Lagos').catch(() => {});
+    } catch (routerErr) {
+      console.warn('Router cleanup error during expiry cron:', routerErr.message);
+      routerStats.errors.push(routerErr.message);
     }
 
     // 5. Clean up old completed/failed pending router tasks (older than 7 days)
@@ -172,9 +101,10 @@ async function processVoucherExpiry(request) {
     );
 
     return NextResponse.json({
-      success: true,
+      success: routerStats.errors.length === 0 && synchronization.errors.length === 0,
       timestamp,
       vouchers_expired_in_db: dbUpdated,
+      activation_sync: synchronization,
       router_sessions_kicked: routerStats.kickedCount,
       router_users_deleted: routerStats.deletedCount,
       router_errors: routerStats.errors.length > 0 ? routerStats.errors : undefined,

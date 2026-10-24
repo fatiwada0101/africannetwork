@@ -48,6 +48,90 @@ export default function MikroTikConfigTab({
   const [showTutorial, setShowTutorial] = useState(false);
   const [clockSyncLoading, setClockSyncLoading] = useState(false);
   const [expiryCleanupLoading, setExpiryCleanupLoading] = useState(false);
+  const [copiedWatchdog, setCopiedWatchdog] = useState(false);
+  const [healthCheckLoading, setHealthCheckLoading] = useState(false);
+
+  const activeRouter = routersList.find(r => r.id === selectedRouterId) || routersList[0] || null;
+  const activeSecret = activeRouter?.polling_secret || 'YOUR_ROUTER_SECRET';
+  const activeRouterName = activeRouter?.name || mikrotikForm.wifi_ssid || 'African Network Router';
+  const appHostname = typeof window !== 'undefined' ? window.location.host : 'africannetwork.net';
+  const appProtocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+
+  const watchdogScript = `# =======================================================
+# African Network - Power Cut Auto-Recovery & Watchdog
+# For: ${activeRouterName}
+# Paste into MikroTik WinBox -> Terminal
+# =======================================================
+
+# 1. Enable MikroTik Cloud DDNS and Cloud Time Sync (works through any NAT)
+/ip cloud set ddns-enabled=yes update-time=yes
+
+# 2. Configure robust SNTP with public IPs (works even if DNS is slow after power boot)
+:do { /system ntp client set enabled=yes servers=216.239.35.0,1.1.1.1 } on-error={
+  /system ntp client set enabled=yes primary-ntp=216.239.35.0 secondary-ntp=1.1.1.1
+}
+
+# 3. Ensure WireGuard tunnel has persistent keepalive
+:do {
+  /interface wireguard peers set [find endpoint-port=51820] persistent-keepalive=25s
+} on-error={}
+
+# 4. Remove previous watchdog if present
+:do { /system scheduler remove [find name="an-power-watchdog"] } on-error={}
+:do { /system script remove [find name="an-watchdog-script"] } on-error={}
+
+# 5. Create Auto-Recovery Watchdog Script
+/system script add name="an-watchdog-script" policy=read,write,test source={
+  :local vpsIp "10.10.10.1"
+  :local pingCount [/ping $vpsIp count=2]
+  :if ($pingCount = 0) do={
+    :log warning "Watchdog: WireGuard unreachable after power reboot. Cycling interface..."
+    :do {
+      /interface wireguard disable [find name="wg-vps"]
+      :delay 2s
+      /interface wireguard enable [find name="wg-vps"]
+    } on-error={}
+    :do { /ip cloud force-update } on-error={}
+  }
+  :do {
+    /tool fetch url="${appProtocol}//${appHostname}/api/mikrotik/heartbeat?secret=${activeSecret}" mode=https check-certificate=no keep-result=no
+  } on-error={}
+}
+
+# 6. Schedule Watchdog to run on router boot & every 60s
+/system scheduler add name="an-power-watchdog" start-time=startup interval=60s on-event="/system script run an-watchdog-script" policy=read,write,test
+
+:log info "African Network: Auto-Recovery Watchdog installed successfully!"
+:put "SUCCESS: Watchdog installed! ${activeRouterName} will auto-reconnect after any power cut."`;
+
+  const handleCopyWatchdog = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(watchdogScript);
+      setCopiedWatchdog(true);
+      showToast('📋 Auto-recovery script copied! Paste it into WinBox -> Terminal.');
+      setTimeout(() => setCopiedWatchdog(false), 3000);
+    }
+  };
+
+  const handleForceHealthCheck = async () => {
+    setHealthCheckLoading(true);
+    try {
+      const res = await fetch('/api/cron/router-health', {
+        headers: adminHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Health check complete: ${data.online} online, ${data.offline} offline`);
+        handleTestMikrotik(true, selectedRouterId);
+      } else {
+        showToast(`Health check error: ${data.error || 'Failed'}`);
+      }
+    } catch (err) {
+      showToast(`Network error: ${err.message}`);
+    } finally {
+      setHealthCheckLoading(false);
+    }
+  };
 
   const handleSyncClock = async () => {
     setClockSyncLoading(true);
@@ -501,6 +585,172 @@ export default function MikroTikConfigTab({
               )}
             </div>
 
+            {/* ── Section 1.5: Power-Cut Auto-Recovery & Watchdog ── */}
+            <div
+              className="sa-glass-card"
+              style={{
+                marginTop: 24,
+                border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, rgba(20, 20, 28, 0.8) 100%)',
+              }}
+            >
+              <div className="sa-card-header">
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 22 }}>⚡</span>
+                    <h3 className="sa-card-title" style={{ margin: 0 }}>
+                      Power-Cut Auto-Recovery &amp; Watchdog
+                    </h3>
+                    <span
+                      className={`sa-badge ${testResult?.connected ? 'sa-badge-success' : 'sa-badge-warn'}`}
+                      style={{ fontSize: 11 }}
+                    >
+                      {testResult?.connected ? '● Router Connected' : '○ Showing Offline (Awaiting Reconnect)'}
+                    </span>
+                  </div>
+                  <p className="sa-card-sub" style={{ marginTop: 6 }}>
+                    Permanent fix for when power cuts off and comes back on. Automatically syncs router clock on boot,
+                    maintains the WireGuard tunnel, and pings the cloud server immediately.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="sa-btn-outline"
+                    onClick={handleForceHealthCheck}
+                    disabled={healthCheckLoading}
+                    style={{
+                      borderColor: 'rgba(52, 168, 83, 0.4)',
+                      color: '#4ADE80',
+                      background: 'rgba(52, 168, 83, 0.06)',
+                      fontSize: 12,
+                      padding: '7px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                    title="Pings all active routers now and updates database statuses"
+                  >
+                    <span>🔄</span>
+                    <span>{healthCheckLoading ? 'Checking Fleet...' : 'Force Fleet Health Check'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="sa-btn-primary"
+                    onClick={handleCopyWatchdog}
+                    style={{
+                      background: copiedWatchdog
+                        ? 'linear-gradient(135deg, #10B981, #059669)'
+                        : 'linear-gradient(135deg, #F59E0B, #D97706)',
+                      color: '#000',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      padding: '7px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <span>{copiedWatchdog ? '✅' : '📋'}</span>
+                    <span>{copiedWatchdog ? 'Copied to Clipboard!' : 'Copy Watchdog Script'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Root Cause Diagnosis */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    fontSize: 12,
+                  }}
+                >
+                  <strong style={{ color: '#F59E0B', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span>🕒</span> System Clock Reset (1970 Trap)
+                  </strong>
+                  <p style={{ margin: 0, color: '#A1A1AA', lineHeight: 1.45 }}>
+                    MikroTik routers (like hAP ax²) have no battery RTC. On power loss, the clock resets to 1970.
+                    WireGuard drops handshakes as replay attacks until the clock reaches current year.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    fontSize: 12,
+                  }}
+                >
+                  <strong style={{ color: '#60A5FA', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span>🌐</span> WireGuard NAT Keepalive
+                  </strong>
+                  <p style={{ margin: 0, color: '#A1A1AA', lineHeight: 1.45 }}>
+                    If the ISP modem boots slower than the router, the WireGuard UDP tunnel stalls.
+                    This watchdog cycles the tunnel and enforces a 25s keepalive to keep VPS ports mapped.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    fontSize: 12,
+                  }}
+                >
+                  <strong style={{ color: '#4ADE80', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span>📡</span> Instant Boot Heartbeat
+                  </strong>
+                  <p style={{ margin: 0, color: '#A1A1AA', lineHeight: 1.45 }}>
+                    Immediately after booting, the router calls <code>/api/mikrotik/heartbeat</code>. The cloud server
+                    instantly marks it online and auto-detects any dynamic IP changes from the ISP.
+                  </p>
+                </div>
+              </div>
+
+              {/* Generated RouterOS Script Box */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#D4D4D8' }}>
+                    WinBox Terminal Script for <span style={{ color: '#F59E0B' }}>{activeRouterName}</span>:
+                  </span>
+                  <span style={{ fontSize: 11, color: '#71717A' }}>
+                    Open WinBox → Click &quot;Terminal&quot; → Right-click &amp; Paste
+                  </span>
+                </div>
+                <pre
+                  style={{
+                    background: '#0D0D12',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 10,
+                    padding: '14px 16px',
+                    fontSize: 11.5,
+                    fontFamily: 'monospace',
+                    color: '#A7F3D0',
+                    lineHeight: 1.5,
+                    overflowX: 'auto',
+                    maxHeight: 220,
+                    margin: 0,
+                  }}
+                >
+                  {watchdogScript}
+                </pre>
+              </div>
+            </div>
+
             {/* ── Section 2: 1-Click Auto Setup ── */}
             <div className="sa-glass-card" style={{ marginTop: 24, border: '1.5px solid rgba(34,197,94,0.3)' }}>
               <div className="sa-card-header">
@@ -565,7 +815,7 @@ export default function MikroTikConfigTab({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <div>
                     <strong style={{ fontSize: '13px' }}>Voucher Expiry Mode</strong>
-                    <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#888' }}>How time counts when user disconnects from Wi-Fi</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#888' }}>Legacy purchase settings. Voucher Factory always counts continuously from first login.</p>
                   </div>
                   <span className={`sa-badge ${hotspotSettings.expiry_mode === 'elapsed' ? 'sa-badge-purple' : 'sa-badge-success'}`}>
                     {hotspotSettings.expiry_mode === 'elapsed' ? 'Elapsed' : 'Paused'}
