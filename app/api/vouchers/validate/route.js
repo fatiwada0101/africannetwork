@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { isMikroTikConfigured, getHotspotUsers, createHotspotUser } from '@/lib/mikrotik';
-import { readExpiryComment } from '@/lib/voucher-expiry';
+import { readExpiryComment, durationSeconds } from '@/lib/voucher-expiry';
 import { syncVoucherDeadline } from '@/lib/voucher-expiry-sync';
 
 /**
@@ -281,23 +281,5 @@ export async function GET(request) {
 
 // Helper: parse MikroTik uptime/duration strings like "1h30m20s", "1d2h", "45m" into seconds
 function parseDurationToSeconds(str) {
-  if (!str) return 0;
-  if (typeof str === 'number') return str;
-
-  let totalSeconds = 0;
-  const days = str.match(/(\d+)d/);
-  const hours = str.match(/(\d+)h/);
-  const mins = str.match(/(\d+)m/);
-  const secs = str.match(/(\d+)s/);
-
-  if (days) totalSeconds += parseInt(days[1], 10) * 86400;
-  if (hours) totalSeconds += parseInt(hours[1], 10) * 3600;
-  if (mins) totalSeconds += parseInt(mins[1], 10) * 60;
-  if (secs) totalSeconds += parseInt(secs[1], 10);
-
-  if (totalSeconds === 0 && !isNaN(str)) {
-    totalSeconds = parseInt(str, 10);
-  }
-
-  return totalSeconds;
+  return durationSeconds(str);
 }

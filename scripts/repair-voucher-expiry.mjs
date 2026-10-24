@@ -94,7 +94,7 @@ for (const action of actions) {
   if (kind !== 'expired' && !readyProfiles.has(profileKey)) {
     const profiles = await request('/ip/hotspot/user/profile');
     const profile = profiles.find(p => p.name === (user.profile || 'default'));
-    if (profile?.['on-login'] && !profile['on-login'].includes('# AN voucher expiry v1')) throw new Error('Existing vendor login hook needs review before adoption');
+    if (profile?.['on-login'] && !profile['on-login'].includes('# AN voucher expiry v')) throw new Error('Existing vendor login hook needs review before adoption');
     await ensureFirstLoginExpiry(user.profile || 'default', router.id);
     readyProfiles.add(profileKey);
   }

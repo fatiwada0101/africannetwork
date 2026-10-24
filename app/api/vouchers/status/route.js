@@ -6,26 +6,7 @@ import { syncVoucherDeadline } from '@/lib/voucher-expiry-sync';
 
 // Helper: parse MikroTik uptime or duration strings like "1h30m20s", "1d2h", "45m", "30s" into total seconds
 function parseDurationToSeconds(str) {
-  if (!str) return 0;
-  if (typeof str === 'number') return str;
-
-  let totalSeconds = 0;
-  const days = str.match(/(\d+)d/);
-  const hours = str.match(/(\d+)h/);
-  const mins = str.match(/(\d+)m/);
-  const secs = str.match(/(\d+)s/);
-
-  if (days) totalSeconds += parseInt(days[1], 10) * 86400;
-  if (hours) totalSeconds += parseInt(hours[1], 10) * 3600;
-  if (mins) totalSeconds += parseInt(mins[1], 10) * 60;
-  if (secs) totalSeconds += parseInt(secs[1], 10);
-
-  // Fallback for simple integer seconds
-  if (totalSeconds === 0 && !isNaN(str)) {
-    totalSeconds = parseInt(str, 10);
-  }
-
-  return totalSeconds;
+  return durationSeconds(str);
 }
 
 // Helper: format seconds to "HH:MM:SS" or "Xd Xh Xm"

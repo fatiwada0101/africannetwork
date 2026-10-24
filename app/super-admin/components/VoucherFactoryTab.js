@@ -116,6 +116,7 @@ export default function VoucherFactoryTab({
     const d = (p.duration || '').toLowerCase();
     if (d === '1h') expType = '1h';
     else if (d === '3h') expType = '3h';
+    else if (d === '5h') expType = '5h';
     else if (d === '6h') expType = '6h';
     else if (d === '12h') expType = '12h';
     else if (d === '24h' || d === '1d' || d === 'daily') expType = 'daily';
@@ -651,6 +652,7 @@ export default function VoucherFactoryTab({
                         onChange={e => setVoucherGen({ ...voucherGen, expiry_type: e.target.value })}>
                         <option value="1h">1 Hour</option>
                         <option value="3h">3 Hours</option>
+                        <option value="5h">5 Hours</option>
                         <option value="6h">6 Hours</option>
                         <option value="12h">12 Hours</option>
                         <option value="daily">Daily (24 hours)</option>

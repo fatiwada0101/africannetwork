@@ -118,6 +118,8 @@ export default function SuperAdminPage() {
   // Router Fleet Management & Target Selection
   const [routersList, setRoutersList] = useState([]);
   const [selectedRouterId, setSelectedRouterId] = useState('');
+  // Store the global/default mikrotik config so we can restore it when switching back
+  const globalMikrotikConfigRef = useRef(null);
 
   // MikroTik Config
   const [mikrotikForm, setMikrotikForm] = useState({
@@ -661,11 +663,43 @@ export default function SuperAdminPage() {
     }
   }, [authed, token, fetchCoreData]);
 
-  // When selected router changes or is first populated, test its connection
+  // When selected router changes, sync mikrotikForm fields and test connection
   useEffect(() => {
-    if (!authed || !token || !selectedRouterId) return;
+    if (!authed || !token) return;
+
+    if (!selectedRouterId) {
+      // Switched back to "Default / Primary" — restore global config if we have it
+      if (globalMikrotikConfigRef.current) {
+        setMikrotikForm(prev => ({ ...prev, ...globalMikrotikConfigRef.current }));
+      }
+      setTestResult(null);
+      return;
+    }
+
+    // Save current global config before overwriting (only once)
+    if (!globalMikrotikConfigRef.current) {
+      globalMikrotikConfigRef.current = { ...mikrotikForm };
+    }
+
+    // Find the selected router in our list and populate the form
+    const router = routersList.find(r => r.id === selectedRouterId);
+    if (router) {
+      setMikrotikForm(prev => ({
+        ...prev,
+        ip: router.ip_address || prev.ip,
+        port: String(router.port || prev.port),
+        user: router.username || prev.user,
+        // Don't overwrite password in the form — the API loads it from DB anyway
+        // pass stays as-is so user can see masked field or type a new one
+        use_ssl: router.use_ssl !== undefined ? router.use_ssl : prev.use_ssl,
+        wifi_ssid: router.name || prev.wifi_ssid,
+        hotspot_url: router.dns_name || prev.hotspot_url,
+      }));
+    }
+
     handleTestMikrotik(true, selectedRouterId);
-  }, [authed, token, selectedRouterId, handleTestMikrotik]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, token, selectedRouterId, routersList]);
 
   // Auto-recovery polling: when router is offline, re-check every 30s until it comes back
   useEffect(() => {
@@ -777,12 +811,44 @@ export default function SuperAdminPage() {
       };
       setMikrotikForm(updatedForm);
 
-      const res = await fetch('/api/super-admin/settings', {
-        method: 'POST', headers: adminHeaders(),
-        body: JSON.stringify({ key: 'mikrotik', value: updatedForm }),
-      });
-      if (res.ok) { showToast('✅ MikroTik settings saved!'); handleTestMikrotik(); }
-      else showToast('❌ Failed to save');
+      // If a specific router is selected, update that router's record in the DB
+      if (selectedRouterId) {
+        try {
+          const routerUpdateRes = await fetch('/api/super-admin/routers', {
+            method: 'PUT',
+            headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: selectedRouterId,
+              ip_address: cleanIp,
+              port: parseInt(cleanPort, 10) || 443,
+              username: updatedForm.user,
+              password: updatedForm.pass || undefined,
+              use_ssl: useSsl,
+              name: updatedForm.wifi_ssid,
+              dns_name: updatedForm.hotspot_url,
+            }),
+          });
+          if (routerUpdateRes.ok) {
+            showToast(`✅ Router config saved for ${updatedForm.wifi_ssid || 'selected router'}!`);
+            fetchRoutersList(); // Refresh list so dropdown reflects changes
+          } else {
+            showToast('❌ Failed to save router-specific config');
+          }
+        } catch (e) {
+          showToast(`Network error saving router: ${e.message}`);
+        }
+        handleTestMikrotik(false, selectedRouterId);
+      } else {
+        // Save as global default config
+        const res = await fetch('/api/super-admin/settings', {
+          method: 'POST', headers: adminHeaders(),
+          body: JSON.stringify({ key: 'mikrotik', value: updatedForm }),
+        });
+        if (res.ok) { showToast('✅ MikroTik settings saved!'); handleTestMikrotik(); }
+        else showToast('❌ Failed to save');
+        // Update the global config ref
+        globalMikrotikConfigRef.current = { ...updatedForm };
+      }
     } catch { showToast('Network error'); }
     finally {
       actionLockRef.current = false;

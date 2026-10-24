@@ -127,6 +127,7 @@ export async function POST(request) {
     const expiryMap = {
       '1h': '1h',
       '3h': '3h',
+      '5h': '5h',
       '6h': '6h',
       '12h': '12h',
       'daily': '1d',
@@ -148,6 +149,7 @@ export async function POST(request) {
     const expiryLabels = {
       '1h': '1 Hour',
       '3h': '3 Hours',
+      '5h': '5 Hours',
       '6h': '6 Hours',
       '12h': '12 Hours',
       'daily': '1 Day',
