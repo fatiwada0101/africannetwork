@@ -223,6 +223,17 @@ export default function SetupDocsTab({
   pollingConfig = {},
 }) {
   const [activeGuide, setActiveGuide] = useState('overview');
+  const [apiPassword, setApiPassword] = useState('AfricanNet2026!');
+  const [showApiPassword, setShowApiPassword] = useState(true);
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+    let res = '';
+    for (let i = 0; i < 16; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setApiPassword(res);
+  };
 
   const activeRouter = routersList.find(r => r.id === selectedRouterId) || routersList[0] || null;
   const activeSecret = activeRouter?.polling_secret || 'YOUR_ROUTER_SECRET';
@@ -260,8 +271,9 @@ export default function SetupDocsTab({
 /ip service set api-ssl disabled=no
 
 # ─── 2. Create a dedicated REST API user (change password!) ───
-:do { /user add name=api-user group=full password="YOUR_STRONG_PASSWORD_HERE" } on-error={
-  :log info "User 'api-user' already exists — skipping"
+:do { /user add name=api-user group=full password="${apiPassword || 'AfricanNet2026!'}" } on-error={
+  :log info "User 'api-user' already exists — updating password"
+  /user set [find name=api-user] password="${apiPassword || 'AfricanNet2026!'}"
 }
 
 # ─── 3. Enable MikroTik Cloud DDNS & Time Sync ───
@@ -481,14 +493,15 @@ wg show`;
 
 # 4. Create a dedicated API user
 :do {
-  /user add name=api-user group=full password="YOUR_PASSWORD_HERE"
+  /user add name=api-user group=full password="${apiPassword || 'AfricanNet2026!'}"
 } on-error={
-  :log info "User api-user already exists"
+  :log info "User api-user already exists — updating password"
+  /user set [find name=api-user] password="${apiPassword || 'AfricanNet2026!'}"
 }
 
 # 5. Test — from any browser or curl:
 #    https://<ROUTER_IP>:443/rest/system/resource
-#    Login: api-user / YOUR_PASSWORD_HERE
+#    Login: api-user / ${apiPassword || 'AfricanNet2026!'}
 
 :put "REST API is now active on HTTPS port 443"
 :put "Test URL: https://$(ip address get [find interface=ether1] address)/rest/system/resource"`;
@@ -928,7 +941,7 @@ wg show`;
                 <li><strong>WinBox</strong> installed on your computer (<a href="https://mikrotik.com/download" target="_blank" rel="noopener noreferrer" style={{ color: '#60A5FA' }}>Download from MikroTik</a>)</li>
                 <li><strong>Connect to router</strong> via WinBox (MAC or IP address)</li>
                 <li><strong>WireGuard tunnel</strong> already set up between router and VPS (see <span onClick={() => setActiveGuide('add-router')} style={{ color: '#06B6D4', cursor: 'pointer', textDecoration: 'underline' }}>Add New Router</span> guide if not)</li>
-                <li>Change <code style={{ color: '#F59E0B', background: 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: 4 }}>YOUR_STRONG_PASSWORD_HERE</code> in the script to your actual API password</li>
+                <li>API Password: Pre-configured below as <code style={{ color: '#34D399', background: '#1E293B', padding: '2px 6px', borderRadius: 4 }}>{apiPassword}</code> — automatically injected into script (no manual editing needed!)</li>
               </ol>
             </div>
           </CollapsibleSection>
@@ -985,6 +998,82 @@ wg show`;
           </CollapsibleSection>
 
           {/* The actual script */}
+          {/* Interactive API Password Generator */}
+          <div style={{
+            background: '#0F172A',
+            border: '1px solid #1E293B',
+            borderRadius: 12,
+            padding: '16px 20px',
+            marginBottom: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+              <div>
+                <strong style={{ fontSize: 13.5, color: '#F8FAFC', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🔑 REST API Password Configurator
+                </strong>
+                <span style={{ fontSize: 12, color: '#94A3B8' }}>
+                  The script below will automatically use this password. Just copy and paste into WinBox — no manual editing required!
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={generateRandomPassword}
+                style={{
+                  background: '#1E293B',
+                  border: '1px solid #334155',
+                  borderRadius: 6,
+                  color: '#38BDF8',
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                🎲 Generate Password
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                type={showApiPassword ? 'text' : 'password'}
+                value={apiPassword}
+                onChange={e => setApiPassword(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: '#030712',
+                  border: '1px solid #334155',
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  color: '#34D399',
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+                placeholder="Enter password..."
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiPassword(!showApiPassword)}
+                style={{
+                  background: '#1E293B',
+                  border: '1px solid #334155',
+                  borderRadius: 8,
+                  color: '#CBD5E1',
+                  padding: '8px 14px',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                {showApiPassword ? '👁️ Hide' : '👁️ Show'}
+              </button>
+            </div>
+            <div style={{ fontSize: 11.5, color: '#FBBF24', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>💡</span> <strong>Remember this password!</strong> You will use username <code style={{ color: '#38BDF8' }}>api-user</code> and this password when registering the router in <strong>Locations & Fleet</strong>.
+            </div>
+          </div>
+
           <CopyBlock
             label="⚡ Master 1-Shot Config — Copy & Paste into WinBox Terminal"
             language="RouterOS Script"
@@ -1003,7 +1092,7 @@ wg show`;
               <span>⚠️</span> Important Reminders
             </strong>
             <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: '#CBD5E1', lineHeight: 1.6 }}>
-              <li>Change <code style={{ color: '#F59E0B' }}>YOUR_STRONG_PASSWORD_HERE</code> to a real strong password</li>
+              <li>API credentials are automatically set to: <code style={{ color: '#38BDF8' }}>api-user</code> / <code style={{ color: '#34D399' }}>{apiPassword}</code></li>
               <li>The WireGuard tunnel (<code>wg-vps</code>) must already be configured on the router</li>
               <li>This script is safe to run multiple times — it won&apos;t duplicate anything</li>
               <li>After running, register the router in <strong>Locations & Fleet</strong> in the admin dashboard</li>
