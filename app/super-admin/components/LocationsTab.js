@@ -48,49 +48,65 @@ export default function LocationsTab({
   const [selectedPresetId, setSelectedPresetId] = useState('');
   const [importedPresetNotice, setImportedPresetNotice] = useState('');
 
-  // ── Auto-read presets from Setup Docs & check auto-open flag ──
+  // ── Auto-read ONLY finished & verified presets (avoids clutter from unfinished drafts) ──
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const list = [];
-      const currentDraftRaw = localStorage.getItem('an_current_new_router_config');
-      if (currentDraftRaw) {
-        const c = JSON.parse(currentDraftRaw);
-        if (c && c.name) {
-          list.push({
-            id: 'current_draft',
-            name: `${c.name} (Current Setup Docs Draft)`,
-            rawName: c.name,
-            vpnIp: c.vpnIp || '10.10.10.4',
-            vpsPort: c.vpsPort || '8731',
-            password: c.password || 'AfricanNet2026!',
-            isDraft: true,
-          });
-        }
-      }
+      // Set of already registered router ports and names in the fleet
+      const deployedPorts = new Set(routers.map(r => Number(r.port)));
+      const deployedNames = new Set(routers.map(r => (r.name || '').toLowerCase().trim()));
+
+      // 1. Only include explicitly completed & saved presets
       const savedRaw = localStorage.getItem('an_router_deployment_presets');
       if (savedRaw) {
         const arr = JSON.parse(savedRaw);
         if (Array.isArray(arr)) {
           arr.forEach(p => {
-            list.push({
-              id: p.id || p.name,
-              name: p.name,
-              rawName: p.name,
-              vpnIp: p.vpnIp,
-              vpsPort: p.vpsPort,
-              password: p.password,
-            });
+            // Must be marked completed and not already registered in fleet
+            const portNum = Number(p.vpsPort);
+            const nameLower = (p.name || '').toLowerCase().trim();
+            if (p.isCompleted && !deployedPorts.has(portNum) && !deployedNames.has(nameLower)) {
+              list.push({
+                id: p.id || p.name,
+                name: p.name,
+                rawName: p.name,
+                vpnIp: p.vpnIp,
+                vpsPort: p.vpsPort,
+                password: p.password,
+              });
+            }
           });
         }
       }
+
+      // 2. Check if user explicitly clicked "Auto-Fill & Open Locations & Fleet" from Phase 5
+      const autoOpen = localStorage.getItem('an_auto_open_add_router');
+      const selectedRaw = localStorage.getItem('an_selected_import_router');
+      if (selectedRaw) {
+        try {
+          const p = JSON.parse(selectedRaw);
+          if (p && p.isCompleted && !deployedPorts.has(Number(p.vpsPort))) {
+            const existingIdx = list.findIndex(item => item.id === p.id || item.rawName === p.name);
+            if (existingIdx === -1) {
+              list.unshift({
+                id: p.id || 'selected_import',
+                name: `${p.name} (Ready for Deployment)`,
+                rawName: p.name,
+                vpnIp: p.vpnIp,
+                vpsPort: p.vpsPort,
+                password: p.password,
+              });
+            }
+          }
+        } catch (e) {}
+      }
+
       setDocPresets(list);
 
-      // Check if user clicked "Auto-Fill & Open Locations & Fleet" from Setup Docs
-      const autoOpen = localStorage.getItem('an_auto_open_add_router');
+      // Handle auto-open when user explicitly clicked Fast Register in Phase 5
       if (autoOpen === 'true') {
         localStorage.removeItem('an_auto_open_add_router');
-        const selectedRaw = localStorage.getItem('an_selected_import_router') || currentDraftRaw;
         if (selectedRaw) {
           const p = JSON.parse(selectedRaw);
           setEditingRouter(null);
@@ -105,7 +121,7 @@ export default function LocationsTab({
             password: p.password || 'AfricanNet2026!',
             use_ssl: true,
           }));
-          setSelectedPresetId(p.id || 'current_draft');
+          setSelectedPresetId(p.id || 'selected_import');
           setImportedPresetNotice(`✓ Auto-filled credentials for ${p.name} (Port ${p.vpsPort})`);
           setShowRouterModal(true);
         }
@@ -113,7 +129,7 @@ export default function LocationsTab({
     } catch (e) {
       console.warn('Error reading router presets:', e);
     }
-  }, [showRouterModal]);
+  }, [showRouterModal, routers]);
 
   const handleApplyPreset = (presetId) => {
     setSelectedPresetId(presetId);
@@ -299,6 +315,20 @@ export default function LocationsTab({
       if (!data.success) throw new Error(data.error);
 
       showToast?.(isEdit ? 'Router updated!' : 'Router registered!', 'success');
+      // Clean up deployed preset from localStorage so it never clutters again
+      if (!isEdit && typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('an_selected_import_router');
+          const savedRaw = localStorage.getItem('an_router_deployment_presets');
+          if (savedRaw) {
+            const arr = JSON.parse(savedRaw);
+            if (Array.isArray(arr)) {
+              const filtered = arr.filter(p => p.name !== routerForm.name && Number(p.vpsPort) !== Number(routerForm.port));
+              localStorage.setItem('an_router_deployment_presets', JSON.stringify(filtered));
+            }
+          }
+        } catch (e) {}
+      }
       setShowRouterModal(false);
       setEditingRouter(null);
       fetchData();
@@ -1122,8 +1152,8 @@ export default function LocationsTab({
             </div>
 
             <form onSubmit={handleSaveRouter}>
-              {/* ── Quick Import from Setup Docs Preset ── */}
-              {!editingRouter && (
+              {/* ── Quick Import from Setup Docs Preset (Only shown when verified presets exist) ── */}
+              {!editingRouter && docPresets.length > 0 && (
                 <div style={{
                   background: 'rgba(56, 189, 248, 0.08)',
                   border: '1px solid rgba(56, 189, 248, 0.25)',
@@ -1135,9 +1165,21 @@ export default function LocationsTab({
                     <strong style={{ fontSize: '13px', color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       ⚡ Quick Import from Setup Docs Preset
                     </strong>
-                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-                      Select a configured router to auto-fill all credentials
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setDocPresets([])}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                      title="Hide Quick Import"
+                    >
+                      ✕ Dismiss
+                    </button>
                   </div>
 
                   <select
@@ -1154,7 +1196,7 @@ export default function LocationsTab({
                       cursor: 'pointer',
                     }}
                   >
-                    <option value="">-- Choose a configured router from Setup Docs to auto-fill --</option>
+                    <option value="">-- Choose a finished router preset to auto-fill --</option>
                     {docPresets.map(p => (
                       <option key={p.id} value={p.id}>
                         📌 {p.name} — Port {p.vpsPort} (WireGuard IP: {p.vpnIp})

@@ -299,9 +299,22 @@ export default function SetupDocsTab({
     } catch (e) {}
   }, [newRouterName, newRouterVpnIp, newRouterVpsPort, apiPassword, newRouterPublicKey, vpsPublicKey]);
 
-  // Save current configuration as a permanent named preset
+  // Save current configuration as a permanent named preset (with completion validation)
+  const isRouterConfigFinished = Boolean(
+    newRouterPublicKey &&
+    newRouterPublicKey.trim().length > 15 &&
+    !newRouterPublicKey.includes('<')
+  );
+
   const handleSaveAsPreset = () => {
     const name = (newRouterName || `Branch Router ${nextRouterNumber}`).trim();
+    if (!isRouterConfigFinished) {
+      const confirmSave = confirm(
+        '⚠️ Router Public Key has not been pasted yet from Phase 1.\n\nWould you still like to save this as a working preset? (It will be marked as in-progress until the key is added).'
+      );
+      if (!confirmSave) return;
+    }
+
     const newPreset = {
       id: 'preset_' + Date.now(),
       name,
@@ -310,16 +323,23 @@ export default function SetupDocsTab({
       password: apiPassword || 'AfricanNet2026!',
       routerPublicKey: newRouterPublicKey || '',
       vpsPublicKey: vpsPublicKey || '',
+      isCompleted: isRouterConfigFinished,
       createdAt: new Date().toISOString(),
     };
+
     const updated = [...savedPresets.filter(p => p.name !== name), newPreset];
     setSavedPresets(updated);
     setActivePresetId(newPreset.id);
     if (typeof window !== 'undefined') {
       localStorage.setItem('an_router_deployment_presets', JSON.stringify(updated));
     }
-    setPresetFeedback(`Saved preset "${name}"! Available in Locations & Fleet.`);
-    setTimeout(() => setPresetFeedback(''), 4000);
+
+    if (isRouterConfigFinished) {
+      setPresetFeedback(`✅ Completed preset "${name}" saved! Ready for 1-click import in Locations & Fleet.`);
+    } else {
+      setPresetFeedback(`📝 Saved in-progress draft "${name}". Complete Phase 1 to activate in Locations & Fleet.`);
+    }
+    setTimeout(() => setPresetFeedback(''), 5000);
   };
 
   // Load a saved preset into the generator
@@ -1809,9 +1829,22 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 28 }}>➕</span>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.3px' }}>
-                    Deploying: {newRouterName || `Branch Router ${nextRouterNumber}`}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.3px' }}>
+                      Deploying: {newRouterName || `Branch Router ${nextRouterNumber}`}
+                    </h3>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      background: isRouterConfigFinished ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                      color: isRouterConfigFinished ? '#34D399' : '#FBBF24',
+                      border: isRouterConfigFinished ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
+                    }}>
+                      {isRouterConfigFinished ? '🟢 Config Complete' : '🟡 In Progress (Pending Key)'}
+                    </span>
+                  </div>
                   <p style={{ margin: '3px 0 0', fontSize: 13, color: '#94A3B8' }}>
                     Assigned VPN IP: <code style={{ color: '#38BDF8', fontWeight: 700 }}>{newRouterVpnIp}</code> •
                     VPS Forwarding Port: <code style={{ color: '#F59E0B', fontWeight: 700 }}>{newRouterVpsPort}</code> •
@@ -2437,13 +2470,21 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
                 <button
                   type="button"
                   onClick={() => {
+                    if (!isRouterConfigFinished) {
+                      const proceed = confirm(
+                        '⚠️ Note: You have not pasted the Router Public Key in Phase 1 yet.\n\nDo you want to proceed to Locations & Fleet anyway?'
+                      );
+                      if (!proceed) return;
+                    }
                     const preset = {
+                      id: 'deploy_' + Date.now(),
                       name: newRouterName || `Branch Router ${nextRouterNumber}`,
                       vpnIp: newRouterVpnIp,
                       vpsPort: newRouterVpsPort,
                       password: apiPassword,
                       routerPublicKey: newRouterPublicKey,
                       vpsPublicKey: vpsPublicKey,
+                      isCompleted: true, // User explicitly finished and confirmed
                     };
                     if (typeof window !== 'undefined') {
                       localStorage.setItem('an_selected_import_router', JSON.stringify(preset));
