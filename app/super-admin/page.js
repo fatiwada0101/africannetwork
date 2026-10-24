@@ -57,6 +57,7 @@ import ResellersTab from './components/ResellersTab';
 import AnalyticsTab from './components/AnalyticsTab';
 import TenantsTab from './components/TenantsTab';
 import UsersTab from './components/UsersTab';
+import SetupDocsTab from './components/SetupDocsTab';
 
 
 const TABS = [
@@ -81,6 +82,7 @@ const TABS = [
   { id: 'mikrotik', label: 'MikroTik Config', icon: CpuIcon },
   { id: 'payments', label: 'Payment Gateway', icon: ServerIcon },
   { id: 'history', label: 'Change History', icon: ClockIcon },
+  { id: 'setup-docs', label: 'Setup & Docs', icon: ServerIcon },
   { id: 'database', label: 'Database & Schema', icon: DatabaseIcon },
 ];
 
@@ -2418,6 +2420,15 @@ export default function SuperAdminPage() {
         {/* ═══ TAB: SAAS TENANTS (Feature 5.5) ═══ */}
         {activeTab === 'tenants' && (
           <TenantsTab authHeaders={adminHeaders} />
+        )}
+
+        {/* ═══ TAB: SETUP & DOCS ═══ */}
+        {activeTab === 'setup-docs' && (
+          <SetupDocsTab
+            routersList={routersList}
+            selectedRouterId={selectedRouterId}
+            pollingConfig={pollingConfig}
+          />
         )}
 
         {/* ═══ TAB: DATABASE & SCHEMA ═══ */}
