@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 // ─── GitBook-Style Reusable copy-to-clipboard button ──────────────
 function CopyBlock({ code, label, language = 'routeros' }) {
@@ -240,9 +240,30 @@ export default function SetupDocsTab({
   const activeRouterName = activeRouter?.name || 'African Network Router';
   const appHostname = typeof window !== 'undefined' ? window.location.host : 'africannetwork.net';
   const appProtocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
-  const nextRouterNumber = routersList.length + 1;
-  const nextVpnIp = `10.10.10.${nextRouterNumber + 1}`;
-  const nextVpsPort = 8443 + ((nextRouterNumber - 1) * 287);
+  // Smart sequential auto-calculation for new router additions
+  const nextRouterNumber = Math.max(routersList.length + 1, 3);
+  const defaultNextVpnIp = `10.10.10.${nextRouterNumber + 1}`;
+  const defaultNextVpsPort = String(8728 + nextRouterNumber);
+
+  // New Router Interactive Generator State (100% reactive & synchronized)
+  const [newRouterName, setNewRouterName] = useState(`Branch Router ${nextRouterNumber}`);
+  const [newRouterVpnIp, setNewRouterVpnIp] = useState(defaultNextVpnIp);
+  const [newRouterVpsPort, setNewRouterVpsPort] = useState(defaultNextVpsPort);
+  const [newRouterPublicKey, setNewRouterPublicKey] = useState('');
+  const [vpsPublicKey, setVpsPublicKey] = useState('');
+
+  // Keep defaults updated when routersList loads
+  useEffect(() => {
+    if (routersList.length > 0) {
+      const nextNum = Math.max(routersList.length + 1, 3);
+      setNewRouterName(prev => (!prev || prev.startsWith('Branch Router')) ? `Branch Router ${nextNum}` : prev);
+      setNewRouterVpnIp(prev => (!prev || prev.startsWith('10.10.10.')) ? `10.10.10.${nextNum + 1}` : prev);
+      setNewRouterVpsPort(prev => (!prev || (Number(prev) >= 8729 && Number(prev) <= 8740)) ? String(8728 + nextNum) : prev);
+    }
+  }, [routersList.length]);
+
+  const nextVpnIp = newRouterVpnIp || defaultNextVpnIp;
+  const nextVpsPort = newRouterVpsPort || defaultNextVpsPort;
 
   // ── Guide navigation pills ────────────────────────────
   const guides = [
@@ -397,76 +418,125 @@ PublicKey = <ROUTER_2_PUBLIC_KEY>
 AllowedIPs = 10.10.10.3/32`;
 
   // ═══════════════════════════════════════════════════════
-  // ADD NEW ROUTER SCRIPTS
+  // ADD NEW ROUTER SCRIPTS (SYNCHRONIZED & EXECUTABLE)
   // ═══════════════════════════════════════════════════════
-  const addRouterVpsScript = `# ═══════════════════════════════════════════════════════
-# Add Router ${nextRouterNumber} to VPS WireGuard
-# Run on VPS via SSH
-# ═══════════════════════════════════════════════════════
 
-# 1. Stop WireGuard temporarily
-systemctl stop wg-quick@wg0
-
-# 2. Add the new peer to /etc/wireguard/wg0.conf
-# Add this block at the end of the file:
-cat >> /etc/wireguard/wg0.conf << 'EOF'
-
-[Peer]
-# Router ${nextRouterNumber}
-PublicKey = <NEW_ROUTER_PUBLIC_KEY>
-AllowedIPs = ${nextVpnIp}/32
-EOF
-
-# 3. Add port forwarding rules to the [Interface] section
-# Add these PostUp lines BEFORE the MASQUERADE line:
-#   PostUp = iptables -t nat -A PREROUTING -p tcp --dport ${nextVpsPort} -j DNAT --to-destination ${nextVpnIp}:443
-#   PostUp = iptables -A FORWARD -p tcp -d ${nextVpnIp} --dport 443 -j ACCEPT
-#
-# And these PostDown lines:
-#   PostDown = iptables -t nat -D PREROUTING -p tcp --dport ${nextVpsPort} -j DNAT --to-destination ${nextVpnIp}:443
-#   PostDown = iptables -D FORWARD -p tcp -d ${nextVpnIp} --dport 443 -j ACCEPT
-
-# 4. Open the new port in UFW firewall
-ufw allow ${nextVpsPort}/tcp
-
-# 5. Restart WireGuard
-systemctl start wg-quick@wg0
-
-# 6. Verify the new peer
-wg show`;
-
-  const addRouterMikrotikScript = `# ═══════════════════════════════════════════════════════
-# New Router ${nextRouterNumber} — WireGuard Client Setup
+  // Phase 1: MikroTik Create WireGuard Interface
+  const addRouterPhase1Script = `# ═══════════════════════════════════════════════════════
+# Phase 1: Create WireGuard Interface on New Router
 # Run on the NEW MikroTik Router via WinBox → Terminal
 # ═══════════════════════════════════════════════════════
 
 # 1. Create WireGuard interface
-/interface wireguard add name=wg-vps listen-port=0 mtu=1420
+:do {
+  /interface wireguard add name=wg-vps listen-port=0 mtu=1420
+} on-error={
+  :log info "WireGuard interface wg-vps already exists"
+}
 
-# 2. Get this router's public key (COPY THIS for VPS config)
-/interface wireguard print where name=wg-vps
+# 2. Print Public Key
+:put ""
+:put "═══════════════════════════════════════════════════════"
+:put "COPY THIS PUBLIC KEY (paste into form in admin dashboard):"
+:put "═══════════════════════════════════════════════════════"
+/interface wireguard print where name=wg-vps`;
 
-# 3. Add VPS as peer
-/interface wireguard peers add \\
-  interface=wg-vps \\
-  public-key="<VPS_PUBLIC_KEY>" \\
-  endpoint-address="187.7.22.89" \\
-  endpoint-port=51820 \\
-  allowed-address=10.10.10.0/24 \\
-  persistent-keepalive=25s
+  // Phase 2: VPS 1-Shot Zero-Downtime Hot-Add Bash Script
+  const addRouterVpsScript = `# ═══════════════════════════════════════════════════════
+# Phase 2: Add Router to VPS (1-Shot Zero-Downtime Script)
+# SSH into Hostinger VPS: ssh root@187.7.22.89
+# Paste this ENTIRE block into VPS SSH Terminal
+# ═══════════════════════════════════════════════════════
 
-# 4. Assign VPN IP address
-/ip address add address=${nextVpnIp}/24 interface=wg-vps
+ROUTER_NAME="${newRouterName || `Branch Router ${nextRouterNumber}`}"
+ROUTER_KEY="${(newRouterPublicKey || '').trim() || '<PASTE_ROUTER_PUBLIC_KEY>'}"
+ROUTER_IP="${newRouterVpnIp || defaultNextVpnIp}"
+VPS_PORT="${newRouterVpsPort || defaultNextVpsPort}"
 
-# 5. Verify tunnel is up
+echo "═══════════════════════════════════════════════════════"
+echo "Registering $ROUTER_NAME on VPS Hub"
+echo "  • WireGuard Tunnel IP: $ROUTER_IP"
+echo "  • Forwarding Port: $VPS_PORT -> $ROUTER_IP:443"
+echo "═══════════════════════════════════════════════════════"
+
+if [ "$ROUTER_KEY" = "<PASTE_ROUTER_PUBLIC_KEY>" ] || [ -z "$ROUTER_KEY" ]; then
+  echo "⚠️ ERROR: Router Public Key is missing!"
+  echo "Please copy the public key from WinBox (Phase 1) and paste it into the dashboard form."
+  exit 1
+fi
+
+# 1. Authorize peer LIVE on WireGuard without restart (Zero downtime for other routers)
+wg set wg0 peer "$ROUTER_KEY" allowed-ips "$ROUTER_IP/32"
+
+# 2. Append peer to /etc/wireguard/wg0.conf for reboot persistence
+cat <<EOF >> /etc/wireguard/wg0.conf
+
+[Peer]
+# $ROUTER_NAME
+PublicKey = $ROUTER_KEY
+AllowedIPs = $ROUTER_IP/32
+EOF
+
+# 3. Add live NAT port forwarding to iptables (Forward $VPS_PORT -> $ROUTER_IP:443)
+iptables -t nat -A PREROUTING -p tcp --dport $VPS_PORT -j DNAT --to-destination $ROUTER_IP:443
+iptables -A FORWARD -p tcp -d $ROUTER_IP --dport 443 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+iptables -t nat -A POSTROUTING -j MASQUERADE
+
+# 4. Open port in UFW firewall
+ufw allow $VPS_PORT/tcp
+
+# 5. Persist firewall rules permanently across reboots
+if command -v netfilter-persistent >/dev/null 2>&1; then
+  netfilter-persistent save
+elif [ -d /etc/iptables ]; then
+  iptables-save > /etc/iptables/rules.v4
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════"
+echo "✅ SUCCESS! $ROUTER_NAME is registered on VPS."
+echo "═══════════════════════════════════════════════════════"
+wg show wg0`;
+
+  // Phase 3: MikroTik Connect to VPS & Verify Tunnel
+  const addRouterPhase3Script = `# ═══════════════════════════════════════════════════════
+# Phase 3: Connect to VPS WireGuard & Test Ping
+# Run on the NEW MikroTik Router via WinBox → Terminal
+# ═══════════════════════════════════════════════════════
+
+# 1. Assign VPN IP to WireGuard interface
+:do {
+  /ip address add address=${newRouterVpnIp || defaultNextVpnIp}/24 interface=wg-vps
+} on-error={
+  /ip address set [find interface=wg-vps] address=${newRouterVpnIp || defaultNextVpnIp}/24
+}
+
+# 2. Add VPS as peer with 25s persistent keepalive
+:do {
+  /interface wireguard peers add \\
+    interface=wg-vps \\
+    public-key="${(vpsPublicKey || '').trim() || '<VPS_PUBLIC_KEY>'}" \\
+    endpoint-address="187.7.22.89" \\
+    endpoint-port=51820 \\
+    allowed-address=10.10.10.0/24 \\
+    persistent-keepalive=25s
+} on-error={
+  /interface wireguard peers set [find interface=wg-vps] \\
+    public-key="${(vpsPublicKey || '').trim() || '<VPS_PUBLIC_KEY>'}" \\
+    endpoint-address="187.7.22.89" \\
+    endpoint-port=51820 \\
+    allowed-address=10.10.10.0/24 \\
+    persistent-keepalive=25s
+}
+
+# 3. Test ping to VPS Hub
+:put ""
+:put "Testing ping to VPS Hub (10.10.10.1)..."
 /ping 10.10.10.1 count=3
 
 :put ""
-:put "If ping succeeds, the tunnel is UP!"
-:put "VPN IP: ${nextVpnIp}"
-:put "VPS Port: ${nextVpsPort}"
-:put ""
-:put "Next: Run the Master 1-Shot Config script to complete setup."`;
+:put "If ping succeeds (0% packet loss), WireGuard tunnel is UP!"
+:put "Next: Proceed to Phase 4 (Master 1-Shot Config)."`;
 
   // ═══════════════════════════════════════════════════════
   // REST API ONLY SETUP
@@ -1626,152 +1696,562 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
       {/* ═══════════════════════════════════════════════════════ */}
       {activeGuide === 'add-router' && (
         <div>
+          {/* ── Top Hero Card ── */}
           <div style={{
             background: '#0F172A',
-            border: '1px solid #1E293B', borderLeft: '4px solid #06B6D4',
+            border: '1px solid #1E293B',
+            borderLeft: '4px solid #06B6D4',
             borderRadius: 14,
-            padding: '18px 22px',
-            marginBottom: 20,
+            padding: '20px 24px',
+            marginBottom: 22,
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 24 }}>➕</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 28 }}>➕</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.3px' }}>
+                    Deploying: {newRouterName || `Branch Router ${nextRouterNumber}`}
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: 13, color: '#94A3B8' }}>
+                    Assigned VPN IP: <code style={{ color: '#38BDF8', fontWeight: 700 }}>{newRouterVpnIp}</code> •
+                    VPS Forwarding Port: <code style={{ color: '#F59E0B', fontWeight: 700 }}>{newRouterVpsPort}</code> •
+                    API User: <code style={{ color: '#34D399', fontWeight: 700 }}>api-user</code>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewRouterName(`Branch Router ${nextRouterNumber}`);
+                  setNewRouterVpnIp(defaultNextVpnIp);
+                  setNewRouterVpsPort(defaultNextVpsPort);
+                  generateRandomPassword();
+                }}
+                style={{
+                  background: '#1E293B',
+                  border: '1px solid #334155',
+                  borderRadius: 8,
+                  color: '#94A3B8',
+                  padding: '6px 14px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                🔄 Reset Defaults
+              </button>
+            </div>
+          </div>
+
+          {/* ── Interactive Synchronizer & Configurator Form ── */}
+          <div style={{
+            background: '#0F172A',
+            border: '1px solid #1E293B',
+            borderRadius: 14,
+            padding: '22px 24px',
+            marginBottom: 24,
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
               <div>
-                <strong style={{ fontSize: 15, color: '#06B6D4' }}>Adding Router #{nextRouterNumber} to the Fleet</strong>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#CBD5E1' }}>
-                  Suggested VPN IP: <code style={{ color: '#4ADE80' }}>{nextVpnIp}</code> •
-                  VPS Port: <code style={{ color: '#F59E0B' }}>{nextVpsPort}</code>
+                <strong style={{ fontSize: 15, color: '#F8FAFC', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  ⚡ New Router Dynamic Synchronizer
+                </strong>
+                <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#94A3B8' }}>
+                  Fill in or customize the router details below. <strong style={{ color: '#38BDF8' }}>All scripts across Phase 1, Phase 2 (VPS), Phase 3, Phase 4, and Phase 5 will automatically update and synchronize in real time!</strong>
                 </p>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: 16,
+              marginBottom: 16,
+            }}>
+              {/* Field 1: Router Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#CBD5E1', marginBottom: 6 }}>
+                  1. Router Name / Branch
+                </label>
+                <input
+                  type="text"
+                  value={newRouterName}
+                  onChange={e => setNewRouterName(e.target.value)}
+                  placeholder="e.g. Branch Router 3"
+                  style={{
+                    width: '100%',
+                    background: '#030712',
+                    border: '1px solid #334155',
+                    borderRadius: 8,
+                    padding: '9px 12px',
+                    color: '#F8FAFC',
+                    fontSize: 13,
+                    fontFamily: 'inherit',
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 4, display: 'block' }}>
+                  Identifier used on VPS and in your Locations & Fleet list.
+                </span>
+              </div>
+
+              {/* Field 2: WireGuard VPN IP */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#CBD5E1', marginBottom: 6 }}>
+                  2. WireGuard Tunnel IP
+                </label>
+                <input
+                  type="text"
+                  value={newRouterVpnIp}
+                  onChange={e => setNewRouterVpnIp(e.target.value)}
+                  placeholder="10.10.10.4"
+                  style={{
+                    width: '100%',
+                    background: '#030712',
+                    border: '1px solid #334155',
+                    borderRadius: 8,
+                    padding: '9px 12px',
+                    color: '#38BDF8',
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 4, display: 'block' }}>
+                  Private IP inside WireGuard subnet (Router 1 = .2, Router 2 = .3, Router 3 = .4).
+                </span>
+              </div>
+
+              {/* Field 3: VPS Port Forward */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#CBD5E1', marginBottom: 6 }}>
+                  3. VPS Forwarding Port (External)
+                </label>
+                <input
+                  type="text"
+                  value={newRouterVpsPort}
+                  onChange={e => setNewRouterVpsPort(e.target.value)}
+                  placeholder="8731"
+                  style={{
+                    width: '100%',
+                    background: '#030712',
+                    border: '1px solid #334155',
+                    borderRadius: 8,
+                    padding: '9px 12px',
+                    color: '#F59E0B',
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 4, display: 'block' }}>
+                  Sequential external port (Router 2 = 8730, Router 3 = 8731, Router 4 = 8732).
+                </span>
+              </div>
+
+              {/* Field 4: REST API User Password */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1' }}>
+                    4. REST API Password (api-user)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generateRandomPassword}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#38BDF8',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    🎲 Generate
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    type={showApiPassword ? 'text' : 'password'}
+                    value={apiPassword}
+                    onChange={e => setApiPassword(e.target.value)}
+                    placeholder="Enter password..."
+                    style={{
+                      flex: 1,
+                      background: '#030712',
+                      border: '1px solid #334155',
+                      borderRadius: 8,
+                      padding: '9px 12px',
+                      color: '#34D399',
+                      fontSize: 13,
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiPassword(!showApiPassword)}
+                    style={{
+                      background: '#1E293B',
+                      border: '1px solid #334155',
+                      borderRadius: 8,
+                      color: '#94A3B8',
+                      padding: '9px 12px',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                    title={showApiPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showApiPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 4, display: 'block' }}>
+                  Baked directly into the Master 1-Shot Config & Locations registration.
+                </span>
+              </div>
+            </div>
+
+            {/* Field 5 & 6: Public Keys */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: 16,
+              background: '#0B0F19',
+              border: '1px solid #1E293B',
+              borderRadius: 10,
+              padding: '14px 16px',
+            }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#A78BFA', marginBottom: 4 }}>
+                  🔑 Router WireGuard Public Key (Generated in Phase 1)
+                </label>
+                <input
+                  type="text"
+                  value={newRouterPublicKey}
+                  onChange={e => setNewRouterPublicKey(e.target.value)}
+                  placeholder="Paste router public key here from Phase 1..."
+                  style={{
+                    width: '100%',
+                    background: '#030712',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '8px 12px',
+                    color: '#A78BFA',
+                    fontSize: 12.5,
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#94A3B8', marginTop: 4, display: 'block' }}>
+                  Paste from WinBox Terminal in Phase 1 → Phase 2 VPS script will instantly update!
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#94A3B8', marginBottom: 4 }}>
+                  🌐 VPS WireGuard Public Key (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={vpsPublicKey}
+                  onChange={e => setVpsPublicKey(e.target.value)}
+                  placeholder="Leave blank or paste VPS public key..."
+                  style={{
+                    width: '100%',
+                    background: '#030712',
+                    border: '1px solid #334155',
+                    borderRadius: 6,
+                    padding: '8px 12px',
+                    color: '#94A3B8',
+                    fontSize: 12.5,
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 4, display: 'block' }}>
+                  If blank, placeholder is shown. Found on VPS in /etc/wireguard/server_public.key.
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Phase 1: VPS Side */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* PHASE 1: MIKROTIK - CREATE WIREGUARD INTERFACE         */}
+          {/* ═══════════════════════════════════════════════════════ */}
           <CollapsibleSection
-            title="Phase 1: VPS Side (SSH into VPS)"
-            icon="🖥️"
-            subtitle="Add the new router's WireGuard peer and port forwarding on the VPS"
-            color="#34A853"
-            defaultOpen={true}
-          >
-            <div style={{ padding: '0 8px', marginBottom: 14 }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
-                <li>SSH into VPS: <code style={{ color: '#4ADE80' }}>ssh root@187.7.22.89</code></li>
-                <li>Edit <code>/etc/wireguard/wg0.conf</code> — add new peer + port forward rules</li>
-                <li>Open new port in UFW: <code style={{ color: '#4ADE80' }}>ufw allow {nextVpsPort}/tcp</code></li>
-                <li>Restart WireGuard: <code style={{ color: '#4ADE80' }}>systemctl restart wg-quick@wg0</code></li>
-              </ol>
-            </div>
-
-            <CopyBlock
-              label={`🖥️ VPS Commands — Add Router #${nextRouterNumber}`}
-              language="bash"
-              code={addRouterVpsScript}
-            />
-          </CollapsibleSection>
-
-          {/* Phase 2: Router Side */}
-          <CollapsibleSection
-            title="Phase 2: MikroTik Router Side (WinBox Terminal)"
+            title="Phase 1: Create WireGuard on Router (WinBox Terminal)"
             icon="📡"
-            subtitle="Configure WireGuard client on the new router"
+            subtitle="Run on the NEW MikroTik router to generate its unique WireGuard key"
             color="#C084FC"
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px', marginBottom: 14 }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
-                <li>Connect to new router via WinBox</li>
-                <li>Open Terminal → paste the WireGuard client setup script</li>
-                <li>Copy the router&apos;s public key and add it to VPS wg0.conf (Phase 1)</li>
-                <li>Verify tunnel with <code style={{ color: '#4ADE80' }}>/ping 10.10.10.1</code></li>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
+                <li>Open <strong>WinBox</strong> and connect to the new router (via MAC address or <code>192.168.88.1</code>).</li>
+                <li>Click <strong>&quot;New Terminal&quot;</strong> in the left sidebar menu.</li>
+                <li>Copy and paste the command block below into the terminal and press <strong>Enter</strong>:</li>
               </ol>
             </div>
 
             <CopyBlock
-              label={`📡 MikroTik Script — WireGuard Client for Router #${nextRouterNumber}`}
+              label="📡 MikroTik — Create wg-vps & Output Public Key"
               language="RouterOS Script"
-              code={addRouterMikrotikScript}
+              code={addRouterPhase1Script}
             />
+
+            <GitbookCallout type="tip" title="Copy Public Key to Generator Above">
+              In your WinBox terminal, copy the <code>public-key</code> value that was printed (e.g. <code>p/Xz...=</code>).
+              Paste it into the <strong>&quot;Router WireGuard Public Key&quot;</strong> box in the form above.
+              <strong> Phase 2 below will instantly update with your router&apos;s real public key!</strong>
+            </GitbookCallout>
           </CollapsibleSection>
 
-          {/* Phase 3: Master config */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* PHASE 2: VPS - 1-SHOT ZERO-DOWNTIME REGISTRATION      */}
+          {/* ═══════════════════════════════════════════════════════ */}
           <CollapsibleSection
-            title="Phase 3: Run Master Config (WinBox Terminal)"
+            title="Phase 2: Register on Hostinger VPS (1-Shot SSH Bash Script)"
+            icon="🖥️"
+            subtitle="Zero downtime — authorizes peer live without restarting WireGuard or dropping other routers"
+            color="#34A853"
+            defaultOpen={true}
+          >
+            <div style={{ padding: '0 8px', marginBottom: 14 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
+                <li>
+                  Open your computer terminal (PowerShell, Terminal, or PuTTY) and SSH into your VPS:
+                  <div style={{ margin: '6px 0' }}>
+                    <code style={{ color: '#4ADE80', background: '#030712', padding: '4px 10px', borderRadius: 6, fontWeight: 700 }}>
+                      ssh root@187.7.22.89
+                    </code>
+                  </div>
+                </li>
+                <li>
+                  Click the <strong>📋 Copy</strong> button below to copy the 1-Shot automated setup script.
+                </li>
+                <li>
+                  Right-click in your VPS SSH terminal to paste and press <strong>Enter</strong>.
+                </li>
+              </ol>
+            </div>
+
+            <CopyBlock
+              label={`🖥️ VPS 1-Shot Script — Add ${newRouterName || 'New Router'} (Port ${newRouterVpsPort})`}
+              language="bash"
+              code={addRouterVpsScript}
+            />
+
+            <GitbookCallout type="success" title="Zero Downtime Guaranteed">
+              This 1-shot script uses <code>wg set wg0 peer</code> to authorize the new router <strong>live</strong>. It does <strong>NOT restart WireGuard</strong>, so existing online routers (like African Network Wi-Fi on port 8730) will experience <strong>zero downtime</strong>!
+            </GitbookCallout>
+          </CollapsibleSection>
+
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* PHASE 3: MIKROTIK - CONNECT TO VPS & TEST PING         */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          <CollapsibleSection
+            title="Phase 3: Connect to VPS & Verify Tunnel (WinBox Terminal)"
+            icon="🔌"
+            subtitle="Assigns VPN IP and initiates the outbound handshake to the VPS Hub"
+            color="#60A5FA"
+            defaultOpen={true}
+          >
+            <div style={{ padding: '0 8px', marginBottom: 14 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
+                <li>Go back to <strong>WinBox → New Terminal</strong> on the new router.</li>
+                <li>Click <strong>📋 Copy</strong> on the script below, paste into the terminal, and press <strong>Enter</strong>:</li>
+              </ol>
+            </div>
+
+            <CopyBlock
+              label={`📡 MikroTik — Connect to VPS Hub & Ping Test (${newRouterVpnIp})`}
+              language="RouterOS Script"
+              code={addRouterPhase3Script}
+            />
+
+            <GitbookCallout type="info" title="Tunnel Verification">
+              Look at the ping output in WinBox. If you see replies from <code>10.10.10.1</code> (0% packet loss), your WireGuard tunnel is <strong>100% active and connected</strong> to your Hostinger VPS!
+            </GitbookCallout>
+          </CollapsibleSection>
+
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* PHASE 4: MIKROTIK - MASTER 1-SHOT CONFIG               */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          <CollapsibleSection
+            title="Phase 4: Run Master 1-Shot Config (WinBox Terminal)"
             icon="⚡"
-            subtitle="Apply the master 1-shot config for REST API + watchdog"
+            subtitle="Configures REST API, SSL cert, direct NTP, Cloud DDNS, and auto-recovery watchdog in 1 paste"
             color="#F59E0B"
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px', marginBottom: 14 }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
-                <li>Still in WinBox Terminal on the new router</li>
-                <li>Go to <span onClick={() => setActiveGuide('master-config')} style={{ color: '#F59E0B', cursor: 'pointer', textDecoration: 'underline', fontWeight: 700 }}>⚡ Master 1-Shot Config</span> and copy the script</li>
-                <li>Paste into the terminal — this sets up REST API, NTP, Cloud DDNS, and the watchdog</li>
-                <li>Change the API password in the script before pasting!</li>
+              <div style={{
+                background: '#0F1E36',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: 8,
+                padding: '12px 16px',
+                marginBottom: 14,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <span style={{ fontSize: 20 }}>🔑</span>
+                <span style={{ fontSize: 13, color: '#E2E8F0' }}>
+                  The script below has your API password pre-configured as <code style={{ color: '#34D399', fontWeight: 700 }}>{apiPassword}</code>. No manual file editing required!
+                </span>
+              </div>
+
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
+                <li>Still in <strong>WinBox → New Terminal</strong> on the new router.</li>
+                <li>Click <strong>📋 Copy</strong> below, paste into the terminal, and press <strong>Enter</strong>:</li>
               </ol>
             </div>
+
+            <CopyBlock
+              label={`⚡ Master 1-Shot Config for ${newRouterName || 'New Router'} (api-user configured)`}
+              language="RouterOS Script"
+              code={masterConfigScript}
+            />
+
+            <GitbookCallout type="tip" title="What this script just configured">
+              <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
+                <li>✅ <strong>REST API & SSL:</strong> Active on HTTPS port 443 with user <code>api-user</code></li>
+                <li>✅ <strong>Cloud DDNS & NTP:</strong> Direct IPs (<code>216.239.35.0</code>) ensure instant time sync on boot</li>
+                <li>✅ <strong>WireGuard Keepalive:</strong> 25-second keepalive prevents ISP NAT timeouts</li>
+                <li>✅ <strong>Power-Cut Watchdog:</strong> Reconnects router in 30-60 seconds after power outages</li>
+              </ul>
+            </GitbookCallout>
           </CollapsibleSection>
 
-          {/* Phase 4: Admin Dashboard */}
+          {/* ═══════════════════════════════════════════════════════ */}
+          {/* PHASE 5: ADMIN DASHBOARD - REGISTER IN FLEET          */}
+          {/* ═══════════════════════════════════════════════════════ */}
           <CollapsibleSection
-            title="Phase 4: Register in Admin Dashboard"
+            title="Phase 5: Register in Admin Dashboard (Locations & Fleet)"
             icon="🌐"
-            subtitle="Add the router to the fleet in the admin panel"
-            color="#60A5FA"
+            subtitle="Add the router to the fleet in your admin dashboard"
+            color="#38BDF8"
             defaultOpen={true}
           >
-            <div style={{ padding: '0 8px' }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
-                <li>Go to <strong>Locations & Fleet</strong> tab in the admin dashboard</li>
-                <li>Click <strong>&quot;Add Location&quot;</strong></li>
-                <li>
-                  Fill in router details:
-                  <ul style={{ paddingLeft: 18, marginTop: 4, lineHeight: 1.8 }}>
-                    <li>Name: <code style={{ color: '#60A5FA' }}>Your Location Name</code></li>
-                    <li>IP: <code style={{ color: '#60A5FA' }}>187.7.22.89</code> (VPS public IP)</li>
-                    <li>Port: <code style={{ color: '#F59E0B' }}>{nextVpsPort}</code></li>
-                    <li>Username: <code style={{ color: '#60A5FA' }}>api-user</code></li>
-                    <li>Password: <code style={{ color: '#60A5FA' }}>the password you set in the master config</code></li>
-                  </ul>
-                </li>
-                <li>Click <strong>&quot;Test Connection&quot;</strong> — should show green ● Connected</li>
-                <li>Click <strong>&quot;Save Router&quot;</strong></li>
+            <div style={{ padding: '0 8px', marginBottom: 16 }}>
+              <p style={{ margin: '0 0 12px', fontSize: 13, color: '#E2E8F0', lineHeight: 1.6 }}>
+                Open <strong>Locations & Fleet</strong> from the left sidebar and click <strong>➕ Add Location / Router</strong>. Enter these exact values:
+              </p>
+
+              {/* Exact Credentials Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 12,
+                marginBottom: 16,
+              }}>
+                <div style={{ background: '#030712', border: '1px solid #1E293B', borderRadius: 8, padding: '12px 14px' }}>
+                  <span style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700 }}>Location / Router Name</span>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#F8FAFC', marginTop: 4 }}>
+                    {newRouterName || `Branch Router ${nextRouterNumber}`}
+                  </div>
+                </div>
+
+                <div style={{ background: '#030712', border: '1px solid #1E293B', borderRadius: 8, padding: '12px 14px' }}>
+                  <span style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700 }}>Host / IP Address</span>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#38BDF8', marginTop: 4, fontFamily: 'monospace' }}>
+                    187.7.22.89
+                  </div>
+                </div>
+
+                <div style={{ background: '#030712', border: '1px solid #1E293B', borderRadius: 8, padding: '12px 14px' }}>
+                  <span style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700 }}>Port</span>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#F59E0B', marginTop: 4, fontFamily: 'monospace' }}>
+                    {newRouterVpsPort}
+                  </div>
+                </div>
+
+                <div style={{ background: '#030712', border: '1px solid #1E293B', borderRadius: 8, padding: '12px 14px' }}>
+                  <span style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700 }}>Username</span>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#F8FAFC', marginTop: 4, fontFamily: 'monospace' }}>
+                    api-user
+                  </div>
+                </div>
+
+                <div style={{ background: '#030712', border: '1px solid #1E293B', borderRadius: 8, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700 }}>Password</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                          navigator.clipboard.writeText(apiPassword);
+                        }
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#34D399',
+                        fontSize: 11,
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        padding: 0,
+                      }}
+                    >
+                      📋 Copy
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#34D399', marginTop: 4, fontFamily: 'monospace' }}>
+                    {apiPassword}
+                  </div>
+                </div>
+
+                <div style={{ background: '#030712', border: '1px solid #1E293B', borderRadius: 8, padding: '12px 14px' }}>
+                  <span style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', fontWeight: 700 }}>SSL & Mode</span>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA', marginTop: 4 }}>
+                    Use SSL: Yes • Mode: Direct REST
+                  </div>
+                </div>
+              </div>
+
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
+                <li>Click <strong>&quot;Test Connection&quot;</strong> — the status badge will immediately turn green: <strong style={{ color: '#4ADE80' }}>● Connected (RouterOS v7.x)</strong> with model, CPU load, and uptime!</li>
+                <li>Click <strong>&quot;Save Router&quot;</strong>.</li>
+                <li>That&apos;s it! The router is now in your fleet and can be managed independently for login pages, vouchers, and plans.</li>
               </ol>
             </div>
           </CollapsibleSection>
 
-          {/* Checklist */}
+          {/* ── Completion Checklist ── */}
           <div style={{
             background: '#0F172A',
             border: '1px solid #065F46',
             borderRadius: 14,
-            padding: '18px 22px',
-            marginTop: 8,
+            padding: '20px 24px',
+            marginTop: 10,
           }}>
-            <strong style={{ color: '#4ADE80', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span>✅</span> New Router Checklist
+            <strong style={{ color: '#4ADE80', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <span>✅</span> Router Deployment Verification Checklist
             </strong>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 8 }}>
               {[
-                'WireGuard peer added on VPS wg0.conf',
-                'Port forwarding rule added (iptables)',
-                'UFW port opened',
-                'WireGuard client configured on router',
-                'Tunnel verified (ping 10.10.10.1)',
-                'Master 1-shot config applied',
-                'API password changed from default',
-                'Router registered in Locations & Fleet',
-                'Test Connection shows green ● Connected',
-                'Power-cut watchdog verified (check scheduler)',
+                `WireGuard interface wg-vps created on router`,
+                `Router public key pasted into form above`,
+                `VPS 1-shot script executed via SSH (port ${newRouterVpsPort})`,
+                `Ping to VPS Hub 10.10.10.1 succeeded (0% loss)`,
+                `Master 1-shot config applied with password: ${apiPassword}`,
+                `Registered in Locations & Fleet (${newRouterName || 'New Router'})`,
+                `Test Connection showed green ● Connected badge`,
+                `Power-cut recovery watchdog verified in WinBox scheduler`,
               ].map((item, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '7px 12px',
+                  padding: '8px 12px',
                   background: 'rgba(255,255,255,0.02)',
                   borderRadius: 8,
                   fontSize: 12.5,
                   color: '#E2E8F0',
+                  border: '1px solid rgba(255,255,255,0.04)',
                 }}>
-                  <span style={{ fontSize: 14, color: '#4ADE80' }}>☐</span>
+                  <span style={{ fontSize: 14, color: '#4ADE80' }}>☑</span>
                   {item}
                 </div>
               ))}
