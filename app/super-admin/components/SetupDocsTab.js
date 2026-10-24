@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 
-// ─── Reusable copy-to-clipboard button ───────────────────────────
+// ─── GitBook-Style Reusable copy-to-clipboard button ──────────────
 function CopyBlock({ code, label, language = 'routeros' }) {
   const [copied, setCopied] = useState(false);
 
@@ -15,121 +15,201 @@ function CopyBlock({ code, label, language = 'routeros' }) {
   };
 
   return (
-    <div style={{ position: 'relative', marginBottom: 14 }}>
-      {label && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 6,
-        }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#D4D4D8', display: 'flex', alignItems: 'center', gap: 6 }}>
-            {label}
-          </span>
-          <span style={{ fontSize: 10, color: '#71717A', fontFamily: 'monospace' }}>{language}</span>
+    <div style={{
+      marginBottom: 18,
+      borderRadius: 10,
+      overflow: 'hidden',
+      border: '1px solid #1E293B',
+      background: '#030712',
+      boxShadow: '0 4px 14px rgba(0, 0, 0, 0.4)',
+    }}>
+      {/* GitBook Code Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 16px',
+        background: '#0F172A',
+        borderBottom: '1px solid #1E293B',
+        flexWrap: 'wrap',
+        gap: 8,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B', display: 'inline-block' }} />
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+          </div>
+          {label && (
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9', letterSpacing: '-0.2px' }}>
+              {label}
+            </span>
+          )}
         </div>
-      )}
-      <div style={{ position: 'relative' }}>
-        <pre
-          style={{
-            background: '#0D0D12',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: 10,
-            padding: '14px 16px',
-            paddingRight: 70,
-            fontSize: 11.5,
-            fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
-            color: '#A7F3D0',
-            lineHeight: 1.55,
-            overflowX: 'auto',
-            maxHeight: 400,
-            margin: 0,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-          }}
-        >
-          {code}
-        </pre>
-        <button
-          onClick={handleCopy}
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            background: copied
-              ? 'linear-gradient(135deg, #10B981, #059669)'
-              : 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: 8,
-            color: copied ? '#000' : '#D4D4D8',
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
             fontSize: 11,
+            color: '#38BDF8',
+            fontFamily: "'JetBrains Mono', Consolas, monospace",
             fontWeight: 700,
-            padding: '6px 12px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            transition: 'all 0.2s',
-          }}
-        >
-          {copied ? '✅ Copied' : '📋 Copy'}
-        </button>
+            textTransform: 'uppercase',
+            background: 'rgba(56, 189, 248, 0.1)',
+            padding: '3px 8px',
+            borderRadius: 5,
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+          }}>
+            {language}
+          </span>
+          <button
+            onClick={handleCopy}
+            style={{
+              background: copied ? '#10B981' : '#1E293B',
+              border: '1px solid #334155',
+              borderRadius: 6,
+              color: '#FFFFFF',
+              fontSize: 12,
+              fontWeight: 700,
+              padding: '5px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {copied ? '✓ Copied!' : '📋 Copy'}
+          </button>
+        </div>
       </div>
+
+      {/* Code Text Area */}
+      <pre
+        style={{
+          padding: '16px 20px',
+          fontSize: 12.5,
+          fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+          color: '#F8FAFC',
+          lineHeight: 1.65,
+          overflowX: 'auto',
+          maxHeight: 450,
+          margin: 0,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          background: '#030712',
+        }}
+      >
+        {code}
+      </pre>
     </div>
   );
 }
 
-// ─── Step number badge ───────────────────────────────────────────
-function StepBadge({ number, color = '#F59E0B' }) {
+// ─── GitBook-Style Step number badge ──────────────────────────────
+function StepBadge({ number, color = '#2563EB' }) {
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: 30, height: 30, borderRadius: '50%',
-      background: `${color}22`, color: color,
-      fontSize: 14, fontWeight: 900, flexShrink: 0,
-      border: `2px solid ${color}55`,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 28,
+      height: 28,
+      borderRadius: '50%',
+      background: '#2563EB',
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: 900,
+      flexShrink: 0,
+      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.35)',
     }}>
       {number}
     </span>
   );
 }
 
-// ─── Collapsible section ─────────────────────────────────────────
+// ─── GitBook-Style Collapsible section ───────────────────────────
 function CollapsibleSection({ title, icon, subtitle, color = '#F59E0B', defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div
-      className="sa-glass-card"
       style={{
         marginBottom: 20,
-        border: `1.5px solid ${color}44`,
-        background: `linear-gradient(135deg, ${color}08 0%, rgba(20, 20, 28, 0.8) 100%)`,
+        background: '#0F172A',
+        border: '1px solid #1E293B',
+        borderRadius: 12,
+        overflow: 'hidden',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)',
       }}
     >
       <div
-        className="sa-card-header"
-        style={{ cursor: 'pointer', userSelect: 'none' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 20px',
+          background: '#131C31',
+          borderBottom: open ? '1px solid #1E293B' : 'none',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
         onClick={() => setOpen(!open)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-          <span style={{ fontSize: 24 }}>{icon}</span>
+          <span style={{ fontSize: 22 }}>{icon}</span>
           <div>
-            <h3 className="sa-card-title" style={{ margin: 0, fontSize: 16 }}>{title}</h3>
-            {subtitle && <p className="sa-card-sub" style={{ marginTop: 4 }}>{subtitle}</p>}
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#F8FAFC', letterSpacing: '-0.2px' }}>{title}</h3>
+            {subtitle && <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94A3B8' }}>{subtitle}</p>}
           </div>
         </div>
         <span style={{
-          fontSize: 18, color: '#888',
-          transition: 'transform 0.25s ease',
+          fontSize: 14,
+          color: '#94A3B8',
+          fontWeight: 700,
+          transition: 'transform 0.2s ease',
           transform: open ? 'rotate(180deg)' : 'none',
         }}>
           ▼
         </span>
       </div>
       {open && (
-        <div style={{ padding: '0 4px 8px', animation: 'fadeIn 0.2s ease' }}>
+        <div style={{ padding: '22px 24px', background: '#0B0F19', color: '#E2E8F0', fontSize: 14, lineHeight: 1.75 }}>
           {children}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── GitBook-Style Callout Block ──────────────────────────────────
+function GitbookCallout({ type = 'info', title, children }) {
+  const configs = {
+    info: { border: '#38BDF8', bg: '#0F1E36', titleColor: '#38BDF8', icon: 'ℹ️' },
+    warning: { border: '#F59E0B', bg: '#1E170A', titleColor: '#FBBF24', icon: '⚠️' },
+    success: { border: '#10B981', bg: '#081D15', titleColor: '#34D399', icon: '✅' },
+    danger: { border: '#EF4444', bg: '#1F1113', titleColor: '#F87171', icon: '⛔' },
+    tip: { border: '#A78BFA', bg: '#19122E', titleColor: '#C4B5FD', icon: '💡' },
+  };
+  const c = configs[type] || configs.info;
+
+  return (
+    <div style={{
+      borderLeft: `4px solid ${c.border}`,
+      background: c.bg,
+      borderRadius: '0 8px 8px 0',
+      padding: '14px 18px',
+      marginBottom: 16,
+      borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+      borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    }}>
+      {title && (
+        <strong style={{ color: c.titleColor, fontSize: 13, display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+          <span>{c.icon}</span> {title}
+        </strong>
+      )}
+      <div style={{ fontSize: 13, color: '#E2E8F0', lineHeight: 1.6 }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -467,52 +547,110 @@ wg show`;
   return (
     <div className="sa-tab-body">
 
-      {/* ── Header Banner ── */}
+      {/* ── GitBook Style Documentation Header ── */}
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(168, 85, 247, 0.08), rgba(245, 158, 11, 0.06))',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
-          borderRadius: 16,
-          padding: '22px 26px',
+          background: '#0F172A',
+          border: '1px solid #1E293B',
+          borderRadius: 14,
+          padding: '24px 26px',
           marginBottom: 24,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-          <span style={{ fontSize: 32 }}>📚</span>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#FFFFFF' }}>
-              Setup & Deployment Guide
-            </h2>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#A1A1AA' }}>
-              Complete documentation for deploying MikroTik routers with the African Network platform.
-              Step-by-step instructions with copy-paste scripts.
-            </p>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 16,
+          marginBottom: 18,
+          borderBottom: '1px solid #1E293B',
+          paddingBottom: 18,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              background: '#1E293B',
+              border: '1px solid #334155',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 22,
+            }}>
+              📖
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.3px' }}>
+                Setup & Deployment Docs
+              </h2>
+              <p style={{ margin: '4px 0 0', fontSize: 13.5, color: '#94A3B8', lineHeight: 1.5 }}>
+                Official operational runbooks, copy-paste terminal scripts, and multi-router fleet configurations.
+              </p>
+            </div>
+          </div>
+
+          {/* Active router context chip */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            background: '#0B0F19',
+            border: '1px solid #1E293B',
+            borderRadius: 8,
+            padding: '8px 14px',
+          }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: activeRouter?.status === 'online' ? '#10B981' : '#EF4444',
+              boxShadow: `0 0 8px ${activeRouter?.status === 'online' ? '#10B981' : '#EF4444'}`,
+            }} />
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#F8FAFC' }}>
+              Target: {activeRouterName}
+            </span>
+            <span style={{ fontSize: 11, color: '#38BDF8', fontFamily: 'monospace' }}>
+              ({activeRouter?.ip_address || 'Cloud'}:{activeRouter?.port || 443})
+            </span>
           </div>
         </div>
 
-        {/* Guide navigation pills */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-          {guides.map(g => (
-            <button
-              key={g.id}
-              onClick={() => setActiveGuide(g.id)}
-              style={{
-                background: activeGuide === g.id
-                  ? `${g.color}20`
-                  : 'rgba(255, 255, 255, 0.04)',
-                border: `1.5px solid ${activeGuide === g.id ? `${g.color}55` : 'rgba(255, 255, 255, 0.08)'}`,
-                borderRadius: 10,
-                padding: '8px 16px',
-                fontSize: 12.5,
-                fontWeight: activeGuide === g.id ? 800 : 600,
-                color: activeGuide === g.id ? g.color : '#A1A1AA',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              {g.label}
-            </button>
-          ))}
+        {/* GitBook Navigation Tabs */}
+        <div style={{
+          display: 'flex',
+          gap: 6,
+          flexWrap: 'wrap',
+          background: '#0B0F19',
+          border: '1px solid #1E293B',
+          borderRadius: 10,
+          padding: 6,
+        }}>
+          {guides.map(g => {
+            const isActive = activeGuide === g.id;
+            return (
+              <button
+                key={g.id}
+                onClick={() => setActiveGuide(g.id)}
+                style={{
+                  background: isActive ? '#1E293B' : 'transparent',
+                  border: isActive ? '1px solid #38BDF8' : '1px solid transparent',
+                  borderRadius: 7,
+                  padding: '8px 14px',
+                  fontSize: 13,
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? '#FFFFFF' : '#94A3B8',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {g.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -568,10 +706,10 @@ wg show`;
             <div style={{ overflowX: 'auto', marginTop: 12 }}>
               <table style={{
                 width: '100%', borderCollapse: 'collapse',
-                fontSize: 12.5, color: '#D4D4D8',
+                fontSize: 12.5, color: '#E2E8F0',
               }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.12)' }}>
+                  <tr style={{ borderBottom: '1px solid #1E293B', background: '#131C31' }}>
                     <th style={{ textAlign: 'left', padding: '10px 14px', color: '#60A5FA', fontWeight: 800 }}>VPS Public Port</th>
                     <th style={{ textAlign: 'left', padding: '10px 14px', color: '#60A5FA', fontWeight: 800 }}>Forwards To</th>
                     <th style={{ textAlign: 'left', padding: '10px 14px', color: '#60A5FA', fontWeight: 800 }}>Description</th>
@@ -579,7 +717,7 @@ wg show`;
                 </thead>
                 <tbody>
                   {routersList.map((r, i) => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <tr key={r.id} style={{ borderBottom: '1px solid #1E293B' }}>
                       <td style={{ padding: '8px 14px' }}>
                         <code style={{ color: '#F59E0B' }}>{r.port || (8443 + i * 287)}</code>
                       </td>
@@ -591,7 +729,7 @@ wg show`;
                       </td>
                     </tr>
                   ))}
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <tr style={{ borderBottom: '1px solid #1E293B' }}>
                     <td style={{ padding: '8px 14px' }}><code style={{ color: '#F59E0B' }}>51820</code> (UDP)</td>
                     <td style={{ padding: '8px 14px' }}>—</td>
                     <td style={{ padding: '8px 14px' }}>WireGuard VPN listen port</td>
@@ -657,8 +795,8 @@ wg show`;
                   key={card.guide}
                   onClick={() => setActiveGuide(card.guide)}
                   style={{
-                    background: `${card.color}08`,
-                    border: `1px solid ${card.color}33`,
+                    background: '#131C31',
+                    border: '1px solid #1E293B',
                     borderRadius: 12,
                     padding: '16px 18px',
                     cursor: 'pointer',
@@ -669,10 +807,10 @@ wg show`;
                     <span style={{ fontSize: 22 }}>{card.emoji}</span>
                     <strong style={{ fontSize: 13, color: card.color }}>{card.title}</strong>
                   </div>
-                  <p style={{ margin: '0 0 8px', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                  <p style={{ margin: '0 0 8px', fontSize: 12, color: '#CBD5E1', lineHeight: 1.4 }}>
                     {card.desc}
                   </p>
-                  <p style={{ margin: 0, fontSize: 11.5, color: '#D4D4D8', fontWeight: 600 }}>
+                  <p style={{ margin: 0, fontSize: 11.5, color: '#E2E8F0', fontWeight: 600 }}>
                     → {card.action}
                   </p>
                 </div>
@@ -683,7 +821,7 @@ wg show`;
           {/* Timing comparison */}
           <div style={{
             background: 'rgba(245, 158, 11, 0.06)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
+            border: '1px solid #1E293B', borderLeft: '4px solid #F59E0B',
             borderRadius: 14,
             padding: '18px 22px',
           }}>
@@ -694,25 +832,25 @@ wg show`;
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div style={{
                 background: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
+                border: '1px solid #7F1D1D',
                 borderRadius: 10,
                 padding: '14px 16px',
               }}>
                 <strong style={{ color: '#FCA5A5', fontSize: 12 }}>❌ Without Watchdog</strong>
                 <div style={{ fontSize: 28, fontWeight: 900, color: '#EF4444', margin: '6px 0 4px' }}>1–3 hours</div>
-                <p style={{ margin: 0, fontSize: 11, color: '#A1A1AA', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: 11, color: '#CBD5E1', lineHeight: 1.4 }}>
                   Router boots with 1970 clock → WireGuard rejects handshakes → Waits for slow NTP/DNS → Eventually syncs
                 </p>
               </div>
               <div style={{
                 background: 'rgba(34, 197, 94, 0.08)',
-                border: '1px solid rgba(34, 197, 94, 0.2)',
+                border: '1px solid #065F46',
                 borderRadius: 10,
                 padding: '14px 16px',
               }}>
                 <strong style={{ color: '#86EFAC', fontSize: 12 }}>✅ With Watchdog</strong>
                 <div style={{ fontSize: 28, fontWeight: 900, color: '#22C55E', margin: '6px 0 4px' }}>30–60 sec</div>
-                <p style={{ margin: 0, fontSize: 11, color: '#A1A1AA', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: 11, color: '#CBD5E1', lineHeight: 1.4 }}>
                   Boot → Cloud time sync instantly → WireGuard keepalive reconnects → Heartbeat pings cloud server
                 </p>
               </div>
@@ -729,7 +867,7 @@ wg show`;
         <div>
           <div style={{
             background: 'rgba(245, 158, 11, 0.08)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
+            border: '1px solid #1E293B', borderLeft: '4px solid #F59E0B',
             borderRadius: 14,
             padding: '18px 22px',
             marginBottom: 20,
@@ -738,7 +876,7 @@ wg show`;
               <span style={{ fontSize: 24 }}>⚡</span>
               <div>
                 <strong style={{ fontSize: 15, color: '#F59E0B' }}>Master 1-Shot Configuration</strong>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#A1A1AA' }}>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#CBD5E1' }}>
                   Paste this ONE script into WinBox Terminal and it configures EVERYTHING.
                 </p>
               </div>
@@ -765,7 +903,7 @@ wg show`;
                   borderRadius: 8,
                   padding: '8px 12px',
                   fontSize: 11.5,
-                  color: '#D4D4D8',
+                  color: '#E2E8F0',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
@@ -786,7 +924,7 @@ wg show`;
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px' }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 2 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
                 <li><strong>WinBox</strong> installed on your computer (<a href="https://mikrotik.com/download" target="_blank" rel="noopener noreferrer" style={{ color: '#60A5FA' }}>Download from MikroTik</a>)</li>
                 <li><strong>Connect to router</strong> via WinBox (MAC or IP address)</li>
                 <li><strong>WireGuard tunnel</strong> already set up between router and VPS (see <span onClick={() => setActiveGuide('add-router')} style={{ color: '#06B6D4', cursor: 'pointer', textDecoration: 'underline' }}>Add New Router</span> guide if not)</li>
@@ -808,7 +946,7 @@ wg show`;
                 <StepBadge number={1} />
                 <div>
                   <strong style={{ fontSize: 14, color: '#FFFFFF' }}>Open WinBox & Connect</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#A1A1AA', lineHeight: 1.5 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#CBD5E1', lineHeight: 1.5 }}>
                     Launch WinBox → Click on your router&apos;s MAC address → Login as admin
                   </p>
                 </div>
@@ -818,7 +956,7 @@ wg show`;
                 <StepBadge number={2} />
                 <div>
                   <strong style={{ fontSize: 14, color: '#FFFFFF' }}>Open Terminal</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#A1A1AA', lineHeight: 1.5 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#CBD5E1', lineHeight: 1.5 }}>
                     In WinBox, click <strong>&quot;New Terminal&quot;</strong> in the left menu to open the RouterOS command line
                   </p>
                 </div>
@@ -828,7 +966,7 @@ wg show`;
                 <StepBadge number={3} />
                 <div>
                   <strong style={{ fontSize: 14, color: '#FFFFFF' }}>Copy & Paste the Script</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#A1A1AA', lineHeight: 1.5 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#CBD5E1', lineHeight: 1.5 }}>
                     Click the &quot;📋 Copy&quot; button below → Right-click in the WinBox terminal → Paste
                   </p>
                 </div>
@@ -838,7 +976,7 @@ wg show`;
                 <StepBadge number={4} />
                 <div>
                   <strong style={{ fontSize: 14, color: '#FFFFFF' }}>Register in Admin Dashboard</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#A1A1AA', lineHeight: 1.5 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#CBD5E1', lineHeight: 1.5 }}>
                     Go to <strong>Locations & Fleet</strong> tab → Add the router with its VPS IP (187.7.22.89), port, and API credentials
                   </p>
                 </div>
@@ -856,7 +994,7 @@ wg show`;
           {/* Important notes */}
           <div style={{
             background: 'rgba(239, 68, 68, 0.06)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
+            border: '1px solid #7F1D1D',
             borderRadius: 12,
             padding: '14px 18px',
             marginTop: 8,
@@ -864,7 +1002,7 @@ wg show`;
             <strong style={{ color: '#FCA5A5', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>⚠️</span> Important Reminders
             </strong>
-            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: '#A1A1AA', lineHeight: 1.6 }}>
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: '#CBD5E1', lineHeight: 1.6 }}>
               <li>Change <code style={{ color: '#F59E0B' }}>YOUR_STRONG_PASSWORD_HERE</code> to a real strong password</li>
               <li>The WireGuard tunnel (<code>wg-vps</code>) must already be configured on the router</li>
               <li>This script is safe to run multiple times — it won&apos;t duplicate anything</li>
@@ -903,19 +1041,19 @@ wg show`;
                 ].map((item, i) => (
                   <div key={i} style={{
                     background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid #1E293B',
                     borderRadius: 8,
                     padding: '10px 14px',
                   }}>
-                    <div style={{ fontSize: 10, color: '#71717A', fontWeight: 700, textTransform: 'uppercase' }}>{item.label}</div>
-                    <div style={{ fontSize: 13, color: '#D4D4D8', fontWeight: 600, marginTop: 2 }}>{item.value}</div>
+                    <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>{item.label}</div>
+                    <div style={{ fontSize: 13, color: '#E2E8F0', fontWeight: 600, marginTop: 2 }}>{item.value}</div>
                   </div>
                 ))}
               </div>
 
               <div style={{
                 background: 'rgba(239, 68, 68, 0.06)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
+                border: '1px solid #7F1D1D',
                 borderRadius: 10,
                 padding: '12px 16px',
                 marginTop: 14,
@@ -939,7 +1077,7 @@ wg show`;
               language="INI"
               code={wg0ConfTemplate}
             />
-            <p style={{ fontSize: 11.5, color: '#A1A1AA', margin: '4px 8px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 11.5, color: '#CBD5E1', margin: '4px 8px', lineHeight: 1.5 }}>
               Replace <code style={{ color: '#F59E0B' }}>&lt;VPS_PRIVATE_KEY&gt;</code> and <code style={{ color: '#F59E0B' }}>&lt;ROUTER_X_PUBLIC_KEY&gt;</code> with actual keys.
               Generate VPS keys with: <code style={{ color: '#4ADE80' }}>wg genkey | tee privatekey | wg pubkey &gt; publickey</code>
             </p>
@@ -957,7 +1095,7 @@ wg show`;
                 <StepBadge number={1} color="#34A853" />
                 <div>
                   <strong style={{ fontSize: 14, color: '#FFFFFF' }}>SSH into VPS</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#A1A1AA' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#CBD5E1' }}>
                     <code style={{ color: '#4ADE80' }}>ssh root@187.7.22.89</code>
                   </p>
                 </div>
@@ -967,7 +1105,7 @@ wg show`;
                 <StepBadge number={2} color="#34A853" />
                 <div>
                   <strong style={{ fontSize: 14, color: '#FFFFFF' }}>Write the wg0.conf file</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#A1A1AA' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#CBD5E1' }}>
                     Copy the WireGuard config from above to <code style={{ color: '#4ADE80' }}>/etc/wireguard/wg0.conf</code>
                   </p>
                 </div>
@@ -999,10 +1137,10 @@ wg show`;
             <div style={{ overflowX: 'auto' }}>
               <table style={{
                 width: '100%', borderCollapse: 'collapse',
-                fontSize: 12.5, color: '#D4D4D8',
+                fontSize: 12.5, color: '#E2E8F0',
               }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid rgba(255,255,255,0.12)' }}>
+                  <tr style={{ borderBottom: '1px solid #1E293B', background: '#131C31' }}>
                     <th style={{ textAlign: 'left', padding: '10px 14px', color: '#60A5FA', fontWeight: 800 }}>Port</th>
                     <th style={{ textAlign: 'left', padding: '10px 14px', color: '#60A5FA', fontWeight: 800 }}>Protocol</th>
                     <th style={{ textAlign: 'left', padding: '10px 14px', color: '#60A5FA', fontWeight: 800 }}>Purpose</th>
@@ -1016,7 +1154,7 @@ wg show`;
                     { port: '8443', proto: 'TCP', purpose: 'Router 1 REST API', cmd: 'ufw allow 8443/tcp' },
                     { port: '8730', proto: 'TCP', purpose: 'Router 2 REST API', cmd: 'ufw allow 8730/tcp' },
                   ].map((row, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <tr key={i} style={{ borderBottom: '1px solid #1E293B' }}>
                       <td style={{ padding: '8px 14px' }}><code style={{ color: '#F59E0B' }}>{row.port}</code></td>
                       <td style={{ padding: '8px 14px' }}>{row.proto}</td>
                       <td style={{ padding: '8px 14px' }}>{row.purpose}</td>
@@ -1043,7 +1181,7 @@ wg show`;
             color="#C084FC"
             defaultOpen={true}
           >
-            <div style={{ padding: '0 8px', fontSize: 13, color: '#A1A1AA', lineHeight: 1.6 }}>
+            <div style={{ padding: '0 8px', fontSize: 13, color: '#CBD5E1', lineHeight: 1.6 }}>
               <p>
                 MikroTik RouterOS 7+ includes a built-in <strong style={{ color: '#C084FC' }}>REST API</strong> that allows
                 external applications to manage the router over HTTPS. This is how the African Network platform
@@ -1080,7 +1218,7 @@ wg show`;
                 <StepBadge number={3} color="#C084FC" />
                 <div>
                   <strong style={{ color: '#FFFFFF' }}>Test the API</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#A1A1AA' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#CBD5E1' }}>
                     Visit <code style={{ color: '#4ADE80' }}>https://&lt;ROUTER_IP&gt;:443/rest/system/resource</code> in your browser
                   </p>
                 </div>
@@ -1150,31 +1288,31 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
               }}>
                 <div style={{
                   background: 'rgba(239, 68, 68, 0.06)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  border: '1px solid #7F1D1D',
                   borderRadius: 10, padding: '14px 16px',
                 }}>
                   <strong style={{ color: '#FCA5A5', fontSize: 12 }}>🕒 Clock Reset (1970)</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#CBD5E1', lineHeight: 1.4 }}>
                     MikroTik hAP ax² has no battery RTC. Power loss resets clock to Jan 1, 1970.
                   </p>
                 </div>
                 <div style={{
                   background: 'rgba(239, 68, 68, 0.06)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  border: '1px solid #7F1D1D',
                   borderRadius: 10, padding: '14px 16px',
                 }}>
                   <strong style={{ color: '#FCA5A5', fontSize: 12 }}>🔒 WireGuard Rejection</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#CBD5E1', lineHeight: 1.4 }}>
                     WireGuard drops handshakes as &quot;replay attacks&quot; because the timestamp is decades in the past.
                   </p>
                 </div>
                 <div style={{
                   background: 'rgba(239, 68, 68, 0.06)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  border: '1px solid #7F1D1D',
                   borderRadius: 10, padding: '14px 16px',
                 }}>
                   <strong style={{ color: '#FCA5A5', fontSize: 12 }}>⏳ Slow NTP Recovery</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#CBD5E1', lineHeight: 1.4 }}>
                     Default NTP uses DNS hostnames that may not resolve until the ISP modem finishes booting.
                   </p>
                 </div>
@@ -1191,7 +1329,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px' }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 2 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
                 <li><strong style={{ color: '#22C55E' }}>Cloud Time Sync</strong> — Uses MikroTik Cloud (IP-based, no DNS needed) to fix the clock immediately on boot</li>
                 <li><strong style={{ color: '#22C55E' }}>Direct IP NTP</strong> — Configures NTP with <code>216.239.35.0</code> and <code>1.1.1.1</code> (no DNS resolution required)</li>
                 <li><strong style={{ color: '#22C55E' }}>WireGuard Keepalive</strong> — Sets 25-second persistent keepalive to prevent NAT mapping timeout</li>
@@ -1244,8 +1382,8 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
         <div>
           {/* When to use */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(139, 92, 246, 0.06))',
-            border: '1px solid rgba(167, 139, 250, 0.25)',
+            background: '#0F172A',
+            border: '1px solid #1E293B', borderLeft: '4px solid #A78BFA',
             borderRadius: 14,
             padding: '18px 22px',
             marginBottom: 20,
@@ -1253,7 +1391,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             <strong style={{ color: '#A78BFA', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <span>🔧</span> When to Use This Script
             </strong>
-            <p style={{ margin: 0, fontSize: 13, color: '#D4D4D8', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#E2E8F0', lineHeight: 1.6 }}>
               Use this for routers that are <strong style={{ color: '#4ADE80' }}>already online and working</strong> — they already have
               REST API, WireGuard, and credentials configured. They just need the <strong style={{ color: '#FBBF24' }}>power-cut
               auto-recovery watchdog</strong> so they come back online in 30-60 seconds instead of 1-3 hours after future blackouts.
@@ -1266,25 +1404,25 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             }}>
               <div style={{
                 background: 'rgba(239, 68, 68, 0.06)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
+                border: '1px solid #7F1D1D',
                 borderRadius: 10, padding: '12px 14px',
               }}>
                 <strong style={{ color: '#FCA5A5', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
                   ⛔ Without Script
                 </strong>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#CBD5E1', lineHeight: 1.4 }}>
                   Power cut → clock resets to 1970 → WireGuard rejects handshakes → <strong style={{ color: '#EF4444' }}>1 to 3 hours</strong> to recover
                 </p>
               </div>
               <div style={{
-                background: 'rgba(34, 197, 94, 0.06)',
-                border: '1px solid rgba(34, 197, 94, 0.2)',
+                background: '#0F172A',
+                border: '1px solid #065F46',
                 borderRadius: 10, padding: '12px 14px',
               }}>
                 <strong style={{ color: '#86EFAC', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
                   ✅ With Script
                 </strong>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#CBD5E1', lineHeight: 1.4 }}>
                   Power cut → watchdog syncs clock via direct IP → WireGuard reconnects → <strong style={{ color: '#22C55E' }}>30 to 60 seconds</strong> to recover
                 </p>
               </div>
@@ -1300,7 +1438,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px' }}>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#D4D4D8', lineHeight: 2 }}>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#E2E8F0', lineHeight: 2 }}>
                 <li>❌ Does <strong>NOT</strong> change your REST API settings (port, user, password)</li>
                 <li>❌ Does <strong>NOT</strong> change your WireGuard tunnel config (keys, endpoints)</li>
                 <li>❌ Does <strong>NOT</strong> touch SSL certificates, hotspot config, or user profiles</li>
@@ -1326,7 +1464,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px' }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 2.2 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 2.2 }}>
                 <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, listStyle: 'none', marginLeft: -20, padding: '6px 0' }}>
                   <StepBadge number="1" color="#A78BFA" />
                   <span>Open <strong>WinBox</strong> and connect to your router (use the same IP/credentials you already have)</span>
@@ -1379,13 +1517,13 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
           {/* Already installed? */}
           <div style={{
             background: 'rgba(245, 158, 11, 0.06)',
-            border: '1px solid rgba(245, 158, 11, 0.2)',
+            border: '1px solid #1E293B', borderLeft: '4px solid #F59E0B',
             borderRadius: 14,
             padding: '16px 20px',
             marginTop: 8,
           }}>
             <strong style={{ color: '#FBBF24', fontSize: 12 }}>💡 Already Installed?</strong>
-            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.5 }}>
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#CBD5E1', lineHeight: 1.5 }}>
               Running this script again is <strong style={{ color: '#4ADE80' }}>completely safe</strong> — it removes the old watchdog first before re-creating it.
               You can re-run it anytime to update the heartbeat URL or watchdog behavior.
             </p>
@@ -1400,8 +1538,8 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
       {activeGuide === 'add-router' && (
         <div>
           <div style={{
-            background: 'rgba(6, 182, 212, 0.08)',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
+            background: '#0F172A',
+            border: '1px solid #1E293B', borderLeft: '4px solid #06B6D4',
             borderRadius: 14,
             padding: '18px 22px',
             marginBottom: 20,
@@ -1410,7 +1548,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
               <span style={{ fontSize: 24 }}>➕</span>
               <div>
                 <strong style={{ fontSize: 15, color: '#06B6D4' }}>Adding Router #{nextRouterNumber} to the Fleet</strong>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#A1A1AA' }}>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#CBD5E1' }}>
                   Suggested VPN IP: <code style={{ color: '#4ADE80' }}>{nextVpnIp}</code> •
                   VPS Port: <code style={{ color: '#F59E0B' }}>{nextVpsPort}</code>
                 </p>
@@ -1427,7 +1565,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px', marginBottom: 14 }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 1.8 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
                 <li>SSH into VPS: <code style={{ color: '#4ADE80' }}>ssh root@187.7.22.89</code></li>
                 <li>Edit <code>/etc/wireguard/wg0.conf</code> — add new peer + port forward rules</li>
                 <li>Open new port in UFW: <code style={{ color: '#4ADE80' }}>ufw allow {nextVpsPort}/tcp</code></li>
@@ -1451,7 +1589,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px', marginBottom: 14 }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 1.8 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
                 <li>Connect to new router via WinBox</li>
                 <li>Open Terminal → paste the WireGuard client setup script</li>
                 <li>Copy the router&apos;s public key and add it to VPS wg0.conf (Phase 1)</li>
@@ -1475,7 +1613,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px', marginBottom: 14 }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 1.8 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
                 <li>Still in WinBox Terminal on the new router</li>
                 <li>Go to <span onClick={() => setActiveGuide('master-config')} style={{ color: '#F59E0B', cursor: 'pointer', textDecoration: 'underline', fontWeight: 700 }}>⚡ Master 1-Shot Config</span> and copy the script</li>
                 <li>Paste into the terminal — this sets up REST API, NTP, Cloud DDNS, and the watchdog</li>
@@ -1493,7 +1631,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
             defaultOpen={true}
           >
             <div style={{ padding: '0 8px' }}>
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 1.8 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#E2E8F0', lineHeight: 1.8 }}>
                 <li>Go to <strong>Locations & Fleet</strong> tab in the admin dashboard</li>
                 <li>Click <strong>&quot;Add Location&quot;</strong></li>
                 <li>
@@ -1514,8 +1652,8 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
 
           {/* Checklist */}
           <div style={{
-            background: 'rgba(34, 197, 94, 0.06)',
-            border: '1px solid rgba(34, 197, 94, 0.2)',
+            background: '#0F172A',
+            border: '1px solid #065F46',
             borderRadius: 14,
             padding: '18px 22px',
             marginTop: 8,
@@ -1542,7 +1680,7 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
                   background: 'rgba(255,255,255,0.02)',
                   borderRadius: 8,
                   fontSize: 12.5,
-                  color: '#D4D4D8',
+                  color: '#E2E8F0',
                 }}>
                   <span style={{ fontSize: 14, color: '#4ADE80' }}>☐</span>
                   {item}

@@ -2,9 +2,16 @@
 import { supabaseAdmin } from '../lib/supabase-server.js';
 import { buildMikroTikRequest } from '../lib/mikrotik.js';
 
-const { data: routers, error } = await supabaseAdmin.from('routers').select('id,name').eq('is_active', true);
+const selectedRouterId = process.argv.find(arg => arg.startsWith('--router-id='))?.slice('--router-id='.length);
+let routerQuery = supabaseAdmin.from('routers').select('id,name,connection_mode').eq('is_active', true);
+if (selectedRouterId) routerQuery = routerQuery.eq('id', selectedRouterId);
+const { data: routers, error } = await routerQuery;
 if (error) throw new Error(error.message);
 for (const router of routers || []) {
+  if (router.connection_mode !== 'direct') {
+    console.log(JSON.stringify({ router: router.name, skipped: 'Direct inspection is unavailable for polling routers' }));
+    continue;
+  }
   const snapshots = {};
   for (const path of ['/system/resource', '/system/clock', '/system/scheduler', '/ip/hotspot/user/profile', '/ip/hotspot/user', '/ip/hotspot/active']) {
     const { url, headers } = await buildMikroTikRequest(`/rest${path}`, router.id);

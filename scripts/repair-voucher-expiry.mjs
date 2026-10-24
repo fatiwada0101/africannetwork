@@ -8,6 +8,7 @@ import { durationSeconds, expiryComment, readExpiryComment, EXPIRY_SCRIPT_NAME }
 
 const apply = process.argv.includes('--apply');
 const overdueOnly = process.argv.includes('--expire-overdue-only');
+const selectedRouterId = process.argv.find(arg => arg.startsWith('--router-id='))?.slice('--router-id='.length);
 const migration = '20261021000001';
 const dispatcher = new Agent({ connect: { rejectUnauthorized: true } });
 let token = process.env.SUPABASE_ACCESS_TOKEN;
@@ -31,8 +32,11 @@ async function sql(query, readOnly = true) {
 }
 const { error: columnError } = await supabaseAdmin.from('vouchers').select('expiry_policy,activated_at').limit(1);
 const installed = columnError ? [] : [migration];
-const { data: routers, error: routerError } = await supabaseAdmin.from('routers').select('id,name,connection_mode').eq('is_active', true);
+let routerQuery = supabaseAdmin.from('routers').select('id,name,connection_mode').eq('is_active', true);
+if (selectedRouterId) routerQuery = routerQuery.eq('id', selectedRouterId);
+const { data: routers, error: routerError } = await routerQuery;
 if (routerError) throw new Error(routerError.message);
+if (!routers.length) throw new Error('No matching active router found');
 if (routers.some(r => r.connection_mode !== 'direct')) throw new Error('Repair supports active direct routers only');
 const snapshots = [];
 for (const router of routers) {
@@ -49,6 +53,7 @@ for (let offset = 0; ; offset += 500) {
 const actions = [];
 const counts = { expired: 0, pending_first_login: 0, preserve_deadline: 0, already_managed: 0, missing_router: 0, unknown_deadline: 0 };
 for (const voucher of vouchers) {
+  if (selectedRouterId && voucher.last_router_id && voucher.last_router_id !== selectedRouterId) continue;
   const matches = snapshots.flatMap(s => s.users.filter(u => u.name === voucher.voucher_code).map(user => ({ ...s, user })));
   if (matches.length > 1) throw new Error('Ambiguous duplicate voucher on multiple routers; manual review required');
   if (!matches.length) { counts.missing_router++; continue; }
