@@ -157,6 +157,7 @@ export default function SetupDocsTab({
   const guides = [
     { id: 'overview', label: '📖 Overview', color: '#60A5FA' },
     { id: 'master-config', label: '⚡ Master 1-Shot Config', color: '#F59E0B' },
+    { id: 'quick-recovery', label: '🔧 Quick Recovery (Already Online)', color: '#A78BFA' },
     { id: 'vps-setup', label: '🖥️ VPS & WireGuard', color: '#34A853' },
     { id: 'mikrotik-setup', label: '📡 MikroTik REST API', color: '#C084FC' },
     { id: 'watchdog', label: '🔋 Power-Cut Watchdog', color: '#EF4444' },
@@ -1232,6 +1233,163 @@ curl -k -u "api-user:YOUR_PASSWORD" https://187.7.22.89:8443/rest/system/resourc
 /log print where topics~"script"`}
             />
           </CollapsibleSection>
+        </div>
+      )}
+
+
+      {/* ═══════════════════════════════════════════════════════ */}
+      {/* QUICK RECOVERY — ALREADY ONLINE ROUTERS               */}
+      {/* ═══════════════════════════════════════════════════════ */}
+      {activeGuide === 'quick-recovery' && (
+        <div>
+          {/* When to use */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(139, 92, 246, 0.06))',
+            border: '1px solid rgba(167, 139, 250, 0.25)',
+            borderRadius: 14,
+            padding: '18px 22px',
+            marginBottom: 20,
+          }}>
+            <strong style={{ color: '#A78BFA', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span>🔧</span> When to Use This Script
+            </strong>
+            <p style={{ margin: 0, fontSize: 13, color: '#D4D4D8', lineHeight: 1.6 }}>
+              Use this for routers that are <strong style={{ color: '#4ADE80' }}>already online and working</strong> — they already have
+              REST API, WireGuard, and credentials configured. They just need the <strong style={{ color: '#FBBF24' }}>power-cut
+              auto-recovery watchdog</strong> so they come back online in 30-60 seconds instead of 1-3 hours after future blackouts.
+            </p>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 10,
+              marginTop: 14,
+            }}>
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.06)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: 10, padding: '12px 14px',
+              }}>
+                <strong style={{ color: '#FCA5A5', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⛔ Without Script
+                </strong>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                  Power cut → clock resets to 1970 → WireGuard rejects handshakes → <strong style={{ color: '#EF4444' }}>1 to 3 hours</strong> to recover
+                </p>
+              </div>
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.06)',
+                border: '1px solid rgba(34, 197, 94, 0.2)',
+                borderRadius: 10, padding: '12px 14px',
+              }}>
+                <strong style={{ color: '#86EFAC', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ✅ With Script
+                </strong>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.4 }}>
+                  Power cut → watchdog syncs clock via direct IP → WireGuard reconnects → <strong style={{ color: '#22C55E' }}>30 to 60 seconds</strong> to recover
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* What it does NOT touch */}
+          <CollapsibleSection
+            title="What This Script Does NOT Change"
+            icon="ℹ️"
+            subtitle="Safe for already-configured routers"
+            color="#60A5FA"
+            defaultOpen={true}
+          >
+            <div style={{ padding: '0 8px' }}>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#D4D4D8', lineHeight: 2 }}>
+                <li>❌ Does <strong>NOT</strong> change your REST API settings (port, user, password)</li>
+                <li>❌ Does <strong>NOT</strong> change your WireGuard tunnel config (keys, endpoints)</li>
+                <li>❌ Does <strong>NOT</strong> touch SSL certificates, hotspot config, or user profiles</li>
+                <li>❌ Does <strong>NOT</strong> modify your IP addresses or routing tables</li>
+                <li style={{ color: '#4ADE80' }}>✅ <strong>ONLY</strong> adds: Cloud time sync, direct NTP, WireGuard keepalive, and a boot watchdog script</li>
+              </ul>
+            </div>
+          </CollapsibleSection>
+
+          {/* The script */}
+          <CopyBlock
+            label={`🔧 Power-Cut Recovery Script for ${activeRouterName} — Copy & Paste into WinBox Terminal`}
+            language="RouterOS Script"
+            code={watchdogOnlyScript}
+          />
+
+          {/* How to apply */}
+          <CollapsibleSection
+            title="How to Apply (2 Minutes)"
+            icon="📋"
+            subtitle="Step-by-step for already-online routers"
+            color="#F59E0B"
+            defaultOpen={true}
+          >
+            <div style={{ padding: '0 8px' }}>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#D4D4D8', lineHeight: 2.2 }}>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, listStyle: 'none', marginLeft: -20, padding: '6px 0' }}>
+                  <StepBadge number="1" color="#A78BFA" />
+                  <span>Open <strong>WinBox</strong> and connect to your router (use the same IP/credentials you already have)</span>
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, listStyle: 'none', marginLeft: -20, padding: '6px 0' }}>
+                  <StepBadge number="2" color="#A78BFA" />
+                  <span>Open <strong>New Terminal</strong> (menu on left side)</span>
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, listStyle: 'none', marginLeft: -20, padding: '6px 0' }}>
+                  <StepBadge number="3" color="#A78BFA" />
+                  <span>Click the <strong style={{ color: '#4ADE80' }}>📋 Copy</strong> button above to copy the script</span>
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, listStyle: 'none', marginLeft: -20, padding: '6px 0' }}>
+                  <StepBadge number="4" color="#A78BFA" />
+                  <span><strong>Right-click</strong> inside the terminal to paste, then press <strong>Enter</strong></span>
+                </li>
+                <li style={{ display: 'flex', alignItems: 'flex-start', gap: 10, listStyle: 'none', marginLeft: -20, padding: '6px 0' }}>
+                  <StepBadge number="5" color="#A78BFA" />
+                  <span>You should see: <code style={{ color: '#4ADE80' }}>✅ Watchdog active!</code> — that&apos;s it, you&apos;re done!</span>
+                </li>
+              </ol>
+            </div>
+          </CollapsibleSection>
+
+          {/* Verify */}
+          <CollapsibleSection
+            title="Verify It's Working"
+            icon="✅"
+            subtitle="Run these commands to confirm installation"
+            color="#22C55E"
+            defaultOpen={false}
+          >
+            <CopyBlock
+              label="Verification Commands"
+              language="RouterOS"
+              code={`# Check the scheduled task exists
+/system scheduler print where name="an-power-watchdog"
+
+# Check the script exists
+/system script print where name="an-watchdog-script"
+
+# Manually trigger the watchdog to test
+/system script run an-watchdog-script
+
+# Check router logs for watchdog activity
+/log print where topics~"script"`}
+            />
+          </CollapsibleSection>
+
+          {/* Already installed? */}
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.06)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            borderRadius: 14,
+            padding: '16px 20px',
+            marginTop: 8,
+          }}>
+            <strong style={{ color: '#FBBF24', fontSize: 12 }}>💡 Already Installed?</strong>
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#A1A1AA', lineHeight: 1.5 }}>
+              Running this script again is <strong style={{ color: '#4ADE80' }}>completely safe</strong> — it removes the old watchdog first before re-creating it.
+              You can re-run it anytime to update the heartbeat URL or watchdog behavior.
+            </p>
+          </div>
         </div>
       )}
 

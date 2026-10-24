@@ -2351,6 +2351,8 @@ export default function SuperAdminPage() {
             adminHeaders={adminHeaders}
             showToast={showToast}
             fetchChangeHistory={fetchChangeHistory}
+            selectedRouterId={selectedRouterId}
+            routersList={routersList}
           />
         )}
 

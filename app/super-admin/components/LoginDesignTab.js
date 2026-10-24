@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshIcon, SmartphoneIcon, MonitorIcon } from '../../components/Icons';
 import WindowsProgressBar from '../../components/WindowsProgressBar';
 
@@ -10,7 +10,21 @@ export default function LoginDesignTab({
   adminHeaders,
   showToast,
   fetchChangeHistory = () => {},
+  selectedRouterId = '',
+  routersList = [],
 }) {
+  const [targetRouterId, setTargetRouterId] = useState(selectedRouterId || (routersList[0]?.id || ''));
+
+  useEffect(() => {
+    if (selectedRouterId) {
+      setTargetRouterId(selectedRouterId);
+    } else if (!targetRouterId && routersList.length > 0) {
+      setTargetRouterId(routersList[0].id);
+    }
+  }, [selectedRouterId, routersList]);
+
+  const activeTargetRouter = routersList.find(r => r.id === targetRouterId) || null;
+
   const [portalTemplate, setPortalTemplate] = useState('midnight-glass');
   const [portalConfig, setPortalConfig] = useState({
     logoUrl: '', businessName: '', contactFooter: '', primaryColor: '', buyUrl: '',
@@ -93,6 +107,7 @@ export default function LoginDesignTab({
           contact_footer: portalConfig.contactFooter || '',
           primary_color: portalConfig.primaryColor || '',
           buy_url: targetBuyUrl,
+          router_id: targetRouterId || selectedRouterId || undefined,
         }),
         signal: AbortSignal.timeout(25000),
       });
@@ -107,13 +122,13 @@ export default function LoginDesignTab({
           active: true,
           percent: 100,
           title: 'Login Page Deployed Live!',
-          subtitle: `"${portalTemplate}" template uploaded and verified on router hotspot storage.`,
+          subtitle: `"${portalTemplate}" template uploaded and verified on ${activeTargetRouter?.name || 'router'} hotspot storage.`,
           status: 'success',
           itemCount: 'Deployed Live',
           elapsedText: updateElapsed(),
           canRetry: false,
         });
-        showToast(`✅ "${portalTemplate}" template pushed to router!`);
+        showToast(`✅ "${portalTemplate}" template pushed to ${activeTargetRouter?.name || 'router'}!`);
       } else {
         throw new Error(data.error || 'Push failed');
       }
@@ -362,6 +377,57 @@ fetch('/api/mikrotik/push-login-page?${params.toString()}')
                   <p className="sa-card-sub">Push the selected template to your MikroTik hotspot</p>
                 </div>
               </div>
+
+              {/* Multi-Router Target Selector */}
+              {routersList && routersList.length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginBottom: 16,
+                  padding: '10px 14px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 12,
+                  flexWrap: 'wrap',
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#A1A1AA', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    🎯 Target Router:
+                  </span>
+                  <select
+                    value={targetRouterId}
+                    onChange={e => setTargetRouterId(e.target.value)}
+                    className="sa-input"
+                    style={{
+                      minWidth: 240,
+                      padding: '7px 12px',
+                      fontSize: 13,
+                      borderRadius: 8,
+                      background: '#18181B',
+                      color: '#F4F4F5',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                    }}
+                  >
+                    {routersList.map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.name || r.ip_address} ({r.ip_address}:{r.port || 443}) — {r.connection_mode === 'polling' ? '📡 Polling' : '⚡ REST API'}
+                      </option>
+                    ))}
+                  </select>
+                  {activeTargetRouter && (
+                    <span style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      background: activeTargetRouter.status === 'online' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: activeTargetRouter.status === 'online' ? '#4ADE80' : '#FCA5A5',
+                    }}>
+                      ● {activeTargetRouter.status === 'online' ? 'Online' : 'Offline'}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Windows-style Progress Bar for Template Push */}
               {portalPushProgress.active && (
