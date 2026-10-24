@@ -12,10 +12,6 @@
     {
       "path": "/api/cron/auto-renew",
       "schedule": "30 0 * * *"
-    },
-    {
-      "path": "/api/cron/router-health",
-      "schedule": "*/5 * * * *"
     }
   ],
   "cleanUrls": true,

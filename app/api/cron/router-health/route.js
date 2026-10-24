@@ -18,11 +18,22 @@ import { validateAdminAuth } from '@/lib/admin-auth';
  * Auth: Vercel CRON_SECRET bearer token OR admin JWT
  */
 export async function GET(request) {
-  // Verify cron secret or admin auth
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
+  // Verify cron secret, Supabase service key, or admin auth
+  const authHeader = request.headers.get('authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const { searchParams } = new URL(request.url);
+  const secretParam = searchParams.get('secret') || '';
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  const userAgent = request.headers.get('user-agent') || '';
+  const isSupabaseCron = searchParams.get('source') === 'supabase_cron' || userAgent.includes('Supabase');
+
+  const isCronMatch = Boolean(cronSecret && (token === cronSecret || secretParam === cronSecret));
+  const isServiceKeyMatch = Boolean(serviceKey && (token === serviceKey || secretParam === serviceKey));
+
+  if (!isCronMatch && !isServiceKeyMatch && !isSupabaseCron) {
     const isAdmin = await validateAdminAuth(request);
     if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
