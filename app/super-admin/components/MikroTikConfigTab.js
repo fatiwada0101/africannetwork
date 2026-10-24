@@ -268,7 +268,17 @@ export default function MikroTikConfigTab({
                 <div className="sa-field-box"><label>Router IP / Hostname *</label><input value={mikrotikForm.ip} onChange={e => setMikrotikForm({ ...mikrotikForm, ip: e.target.value })} placeholder="187.7.22.89" /></div>
                 <div className="sa-field-box"><label>REST API Port *</label><input value={mikrotikForm.port} onChange={e => setMikrotikForm({ ...mikrotikForm, port: e.target.value })} placeholder="8443" /></div>
                 <div className="sa-field-box"><label>API Username *</label><input value={mikrotikForm.user} onChange={e => setMikrotikForm({ ...mikrotikForm, user: e.target.value })} placeholder="admin" /></div>
-                <div className="sa-field-box"><label>API Password</label><input type="password" value={mikrotikForm.pass} onChange={e => setMikrotikForm({ ...mikrotikForm, pass: e.target.value })} placeholder="********" /></div>
+                <div className="sa-field-box">
+                  <label>
+                    API Password {selectedRouterId && <span style={{ fontSize: 11, color: '#A1A1AA', fontWeight: 'normal' }}>(Leave blank to keep saved)</span>}
+                  </label>
+                  <input
+                    type="password"
+                    value={mikrotikForm.pass}
+                    onChange={e => setMikrotikForm({ ...mikrotikForm, pass: e.target.value })}
+                    placeholder={selectedRouterId ? "Saved in database (••••••••)" : "********"}
+                  />
+                </div>
               </div>
               <div className="sa-ssl-check-row">
                 <label className="sa-checkbox-label">
@@ -278,7 +288,7 @@ export default function MikroTikConfigTab({
               </div>
               <div className="sa-button-row" style={{ gap: 10 }}>
                 <button className="sa-btn-primary" onClick={saveMikrotik}>Save Configuration</button>
-                <button className="sa-btn-outline" onClick={() => handleTestMikrotik(false)} disabled={testLoading}>
+                <button className="sa-btn-outline" onClick={() => handleTestMikrotik(false, selectedRouterId || null)} disabled={testLoading}>
                   {testLoading ? 'Testing...' : 'Test Connection'}
                 </button>
                 <button

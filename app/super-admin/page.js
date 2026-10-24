@@ -692,8 +692,7 @@ export default function SuperAdminPage() {
         ip: router.ip_address || prev.ip,
         port: String(router.port || prev.port),
         user: router.username || prev.user,
-        // Don't overwrite password in the form — the API loads it from DB anyway
-        // pass stays as-is so user can see masked field or type a new one
+        pass: '', // Always reset password input on router switch so stale passwords never leak or overwrite
         use_ssl: router.use_ssl !== undefined ? router.use_ssl : prev.use_ssl,
         wifi_ssid: router.name || prev.wifi_ssid,
         hotspot_url: router.dns_name || prev.hotspot_url,
@@ -845,7 +844,7 @@ export default function SuperAdminPage() {
               ip_address: cleanIp,
               port: parseInt(cleanPort, 10) || 443,
               username: updatedForm.user,
-              password: updatedForm.pass || undefined,
+              password: updatedForm.pass && updatedForm.pass.trim() ? updatedForm.pass.trim() : undefined,
               use_ssl: useSsl,
               name: updatedForm.wifi_ssid,
               dns_name: updatedForm.hotspot_url,

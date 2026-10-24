@@ -119,7 +119,9 @@ export async function PUT(request) {
     }
 
     if (fields.username !== undefined) updates.username = fields.username?.trim() || 'admin';
-    if (fields.password !== undefined) updates.password = fields.password;
+    if (typeof fields.password === 'string' && fields.password.trim().length > 0) {
+      updates.password = fields.password.trim();
+    }
     if (fields.use_ssl !== undefined) updates.use_ssl = Boolean(fields.use_ssl);
     if (fields.dns_name !== undefined) updates.dns_name = fields.dns_name?.trim() || 'asuktech.net';
     if (fields.hotspot_server_name !== undefined) updates.hotspot_server_name = fields.hotspot_server_name?.trim() || 'hotspot1';
