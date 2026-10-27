@@ -1028,6 +1028,35 @@ export default function SuperAdminPage() {
     }
   };
 
+  // Purge ALL free users, clear cookies, and kick active sessions on the selected router
+  const [kickAllLoading, setKickAllLoading] = useState(false);
+  const kickAllUsers = async () => {
+    if (actionLockRef.current) return;
+    const confirmMsg = `⚠️ PURGE ALL FREE USERS on this router?\n\nThis will execute a complete 3-step cleanup:\n1. Clear all hotspot cookies (prevents MAC auto-login)\n2. Disconnect all ${sessions.length} active session(s)\n3. Remove unauthorized hotspot users from the router\n\nConnected devices will NOT be able to reconnect without entering a valid voucher PIN.\n\nProceed?`;
+    if (!confirm(confirmMsg)) return;
+    actionLockRef.current = true;
+    setActionBusy(true);
+    setKickAllLoading(true);
+    try {
+      const res = await fetch('/api/mikrotik/kick-all-sessions', {
+        method: 'POST', headers: adminHeaders(),
+        body: JSON.stringify({ router_id: selectedRouterId || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`🔌 ${data.message || 'Purge completed successfully'}`);
+        fetchCoreData();
+      } else {
+        showToast(`❌ ${data.details || data.error || 'Failed to purge users'}`);
+      }
+    } catch { showToast('Network error'); }
+    finally {
+      actionLockRef.current = false;
+      setActionBusy(false);
+      setKickAllLoading(false);
+    }
+  };
+
 
   // Quick Preset Loader from Existing Plan
   const handleQuickLoadPlan = (planId) => {
@@ -2282,6 +2311,9 @@ export default function SuperAdminPage() {
             sessions={sessions}
             formatBytes={formatBytes}
             kickUser={kickUser}
+            kickAllUsers={kickAllUsers}
+            kickAllLoading={kickAllLoading}
+            selectedRouterId={selectedRouterId}
           />
         )}
 

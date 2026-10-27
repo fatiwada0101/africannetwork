@@ -306,15 +306,23 @@ export async function POST(request) {
           serial_number: serialNum,
           error: err.message,
         });
+        // If router connection timed out or is unreachable, abort remaining attempts
+        const isConnErr = err.name === 'AbortError' || err.name === 'TimeoutError' || err.message?.includes('timeout') || err.message?.includes('fetch failed') || err.message?.includes('ECONNREFUSED');
+        if (isConnErr) {
+          console.warn(`Router connection error on voucher ${serialNum}: ${err.message}. Aborting remaining batch.`);
+          break;
+        }
       }
     }
 
+    const totalFailed = count - results.length;
+
     return NextResponse.json({
       success: results.length > 0,
-      ...(results.length === 0 ? { error: errors[0]?.error || 'No vouchers were created' } : {}),
+      ...(results.length === 0 ? { error: errors[0]?.error ? `Router error: ${errors[0].error}` : 'No vouchers were created' } : {}),
       batch_id: batchId,
       generated: results.length,
-      failed: errors.length,
+      failed: totalFailed,
       vouchers: results,
       errors: errors.length > 0 ? errors : undefined,
       expiry_type,

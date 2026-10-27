@@ -545,6 +545,25 @@ export default function VoucherFactoryTab({
                           </option>
                         )}
                       </select>
+                      {activeTargetRouter && activeTargetRouter.status !== 'online' && (
+                        <div style={{
+                          marginTop: 10,
+                          padding: '10px 14px',
+                          borderRadius: 8,
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          fontSize: 12,
+                          color: '#FCA5A5',
+                        }}>
+                          <span>⚠️</span>
+                          <span>
+                            <strong>Router is currently marked offline:</strong> Direct voucher provisioning will fail if this router is unreachable. Please check its power/connection or select an online router above.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
